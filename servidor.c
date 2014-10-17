@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <string.h>
 #include <netdb.h>
+#include <arpa/inet.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -24,8 +25,10 @@ int main (int argc, char **argv) {
    // e a estrutura sockaddr_in
    int    listenfd, connfd;
    struct sockaddr_in servaddr;
+   struct sockaddr_in clientaddr;
    char   buf[MAXDATASIZE];
    time_t ticks;
+   socklen_t clientsize = sizeof(clientaddr);
 
    // Tenta criar um socket local TCP IPv4
    // AF_INET -> IPv4
@@ -73,7 +76,23 @@ int main (int argc, char **argv) {
       snprintf(buf, sizeof(buf), "%.24s\r\n", ctime(&ticks));
       write(connfd, buf, strlen(buf));
 
-      // Iniciar finalizacao da conexao
+      // Limpa o que estiver no ponteiro do socket do client
+      bzero(&clientaddr, sizeof(clientaddr));
+      // Coletar informacoes sobre o socket do client
+      if (getpeername(connfd, (struct sockaddr *) &clientaddr, &clientsize) < 0) {
+         perror("getsockname error");
+         exit(1);
+      }
+      // Converter informacao do IP de binario para string
+      // armazenar o resultado no buffer
+      if (inet_ntop(AF_INET, &clientaddr.sin_addr, buf, sizeof(buf)) <= 0) {
+         perror("inet_ntop error");
+         exit(1);
+      }
+      // Escrever IP e porta do client na saida padrao
+      printf("IP: %s\tport: %d\n", buf, htons(clientaddr.sin_port));
+
+      // Finalizar a conexao
       close(connfd);
    }
    return(0);
