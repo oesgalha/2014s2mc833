@@ -25,7 +25,10 @@ int main(int argc, char **argv) {
    int    sockfd, n;
    char   recvline[MAXLINE + 1];
    char   error[MAXLINE + 1];
+   char   buf[MAXLINE + 1];
    struct sockaddr_in servaddr;
+   struct sockaddr_in localaddr;
+   socklen_t localsize = sizeof(localaddr);
 
    // Checa a presenca do parametro de IP
    // caso ausente, fecha o programa
@@ -76,6 +79,22 @@ int main(int argc, char **argv) {
          exit(1);
       }
    }
+
+   // Limpa o que estiver no ponteiro do socket local
+   bzero(&localaddr, sizeof(localaddr));
+   // Coletar informacoes sobre o socket
+   if (getsockname(sockfd, (struct sockaddr *) &localaddr, &localsize) < 0) {
+      perror("getsockname error");
+      exit(1);
+   }
+   // Converter informacao do IP de binario para string
+   // armazenar o resultado no buffer
+   if (inet_ntop(AF_INET, &localaddr.sin_addr, buf, sizeof(buf)) <= 0) {
+      perror("inet_ntop error");
+      exit(1);
+   }
+   // Escrever IP e porta na saida padrao
+   printf("IP: %s\tport: %d\n", buf, htons(localaddr.sin_port));
 
    // Se não recebeu nenhum dado, reportar erro de leitura
    // e fechar o programa
