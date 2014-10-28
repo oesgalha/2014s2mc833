@@ -44,14 +44,14 @@ void Listen(int listenfd, int listenq) {
  
 // Aceita a conexao do cliente
 // Em caso de falha fechar o programa
-int Accept(int listenfd, struct sockaddr_in clientaddr) {
+int Accept(int listenfd, struct sockaddr_in *clientaddr) {
     int connfd, clientsize;
     clientsize = sizeof(clientaddr);
-    if ((connfd = accept(listenfd, (struct sockaddr *)&clientaddr, (socklen_t*)&clientsize)) == -1 ) {
+    if ((connfd = accept(listenfd, (struct sockaddr *)clientaddr, (socklen_t*)&clientsize)) == -1 ) {
         perror("accept");
         exit(1);
     } else {
-        return connfd;
+      return connfd;
     }
 }
  
@@ -87,15 +87,6 @@ void InetNtop(int family, char* buffer, struct sockaddr_in sockaddress) {
  }
 }
 
-struct sockaddr_in Getpeername(int connfd, struct sockaddr_in sockaddress) {
-   socklen_t socksize = sizeof(sockaddress);
-   if (getpeername(connfd, (struct sockaddr *) &sockaddress, &socksize) < 0) {
-      perror("getsockname error");
-      exit(1);
-   }
-   return sockaddress;
-}
- 
 /*
    Servidor
    Aplicacao simples de servidor tcp que recebe
@@ -145,9 +136,7 @@ int main (int argc, char **argv) {
    for ( ; ; ) {
       // Se chegou uma conexao
       // Em caso de falha fechar o programa
-      connfd = Accept(listenfd, clientaddr);
-      // Coletar informacoes do socket do client
-      clientaddr = Getpeername(connfd, clientaddr);
+      connfd = Accept(listenfd, &clientaddr);
       // Converter informacao do IP de binario para string
       // armazenar o resultado no buffer
       InetNtop(AF_INET, buf, clientaddr);
