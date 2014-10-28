@@ -8,75 +8,84 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
- 
+
 #define LISTENQ 10
 #define MAXDATASIZE 4096
- 
+
 // Criar um socket com as opcoes especificadas
 // Fecha o programa em caso de erro
 int Socket(int family, int type, int flags) {
-    int sockfd;
-    if ( (sockfd = socket(family, type, flags)) < 0) {
-        perror("socket error");
-        exit(1);
-    } else {
-     return sockfd;
-    }
+	int sockfd;
+	if ( (sockfd = socket(family, type, flags)) < 0) {
+	 	perror("socket error");
+	 	exit(1);
+	} else {
+	  return sockfd;
+	}
 }
- 
+
 // Fazer um bind do socket com os parametros escolhidos
 // Fechar o programa em caso de erro
 void Bind(int listenfd, struct sockaddr_in servaddr) {
-    if (bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1) {
+	if (bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1) {
       perror("bind");
       exit(1);
-   }
+   	}
 }
- 
+
 // Setar socket como passivo (aceita conexoes)
 // Fechar o programa em caso de erro
 void Listen(int listenfd, int listenq) {
-    if (listen(listenfd, listenq) == -1) {
+	if (listen(listenfd, listenq) == -1) {
       perror("listen");
       exit(1);
    }
 }
- 
+
 // Aceita a conexao do cliente
 // Em caso de falha fechar o programa
 int Accept(int listenfd, struct sockaddr_in *clientaddr) {
-    int connfd, clientsize;
-    clientsize = sizeof(clientaddr);
-    if ((connfd = accept(listenfd, (struct sockaddr *)clientaddr, (socklen_t*)&clientsize)) == -1 ) {
-        perror("accept");
-        exit(1);
-    } else {
-      return connfd;
-    }
+	int connfd, clientsize;
+	clientsize = sizeof(clientaddr);
+	if ((connfd = accept(listenfd, (struct sockaddr *)clientaddr, (socklen_t*)&clientsize)) == -1 ) {
+		perror("accept");
+		exit(1);
+	} else {
+		return connfd;
+	}
 }
- 
+
 // Recebe dados do cliente e escreve em um buffer
 // Se retornar algo > 0, ainda ha dados a serem escritos (ultrapassaram o tamanho do buffer)
 void Read(int sockfd, char* buffer) {
-    int read_size;
-    read_size = recv(sockfd, buffer, MAXDATASIZE, 0);
-    if (read_size < 0) {
-        perror("read error");
-        exit(1);
-    }
+	int read_size;
+	read_size = recv(sockfd, buffer, MAXDATASIZE, 0);
+	if (read_size < 0) {
+		perror("read error");
+		exit(1);
+	}
 }
- 
+
 // Envia dados do cliente e escreve em um buffer
 // Se retornar algo > 0, ainda ha dados a serem escritos (ultrapassaram o tamanho do buffer)
 void Write(int sockfd, char* buffer) {
-    int write_size;
-    write_size = write(sockfd, buffer, strlen(buffer));
-    if (write_size < 0) {
-        perror("write error");
-        exit(1);
-    }
+	int write_size;
+	write_size = write(sockfd, buffer, strlen(buffer));
+	if (write_size < 0) {
+		perror("write error");
+		exit(1);
+	}
 }
- 
+
+// Converte um IP string para a forma binaria da struct sockaddr_in
+// Fecha o programa em caso de erro
+void InetPton(int family, char *ipaddress, struct sockaddr_in sockaddress) {
+  if (inet_pton(family, ipaddress, &sockaddress.sin_addr) <= 0) {
+    perror("inet_pton error");
+    exit(1);
+  }
+}
+
 // Converte o IP da forma binaria da struct sockaddr_in para uma string
 // e armazena em buffer
 // Fecha o programa em caso de erro
@@ -89,19 +98,17 @@ void InetNtop(int family, char* buffer, struct sockaddr_in sockaddress) {
 
 /*
    Servidor
-   Aplicacao simples de servidor tcp que recebe
-   conexoes na porta 1024 e responde com o horario
-   da maquina rodando a aplicacao do servidor.
+   Aplicacao simples de servidor tcp que recebe varias
+   conexoes na porta passada por parametro e executa
+   o comando enviado pelo cliente
 */
 int main (int argc, char **argv) {
-   // Delcaracao de variaveis
-   // Socket, buffer, ticker
-   // e a estrutura sockaddr_in
+   // Declaracao de variaveis
    int    listenfd, connfd;
    struct sockaddr_in servaddr;
    struct sockaddr_in clientaddr;
-   char   buf[MAXDATASIZE + 1], error[MAXDATASIZE + 1];
-    
+   char   buf[MAXDATASIZE + 1], error[MAXDATASIZE + 1], client[MAXDATASIZE + 1];
+   
    // Checa a presenca do parametro Porta
    // caso ausente, fecha o programa
    if (argc != 2) {
@@ -111,12 +118,10 @@ int main (int argc, char **argv) {
       perror(error);
       exit(1);
    }
- 
+
    // Tenta criar um socket local TCP IPv4
-   // AF_INET -> IPv4
-   // SOCK_STREAM -> TCP
    listenfd = Socket(AF_INET, SOCK_STREAM, 0);
- 
+
    // Limpa o que estiver no ponteiro do socket que representa o servidor
    // Seta o socket do servidor como IPv4 e seta a porta de conexao passada por parametro.
    // Seta uma mascara para aceitar conexoes de qualquer IP
@@ -124,35 +129,44 @@ int main (int argc, char **argv) {
    servaddr.sin_family      = AF_INET;
    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
    servaddr.sin_port        = htons(atoi(argv[1]));
- 
+
    // Tentar fazer o bind do socket de servidor na porta escolhida
    Bind(listenfd, servaddr);
-    
+   
    // Setar socket como passivo (aceita conexoes)
    // Em caso de falha, fechar o programa
    Listen(listenfd, LISTENQ);
- 
+
    // Loop infinito
    for ( ; ; ) {
       // Se chegou uma conexao
       // Em caso de falha fechar o programa
       connfd = Accept(listenfd, &clientaddr);
+      
       // Converter informacao do IP de binario para string
       // armazenar o resultado no buffer
-      InetNtop(AF_INET, buf, clientaddr);
-      // Escrever IP e porta do client na saida padrao
-      printf("Client: IP: %s\tport: %d\n", buf, htons(clientaddr.sin_port));
-      bzero(&buf, sizeof(buf));
-      Read(connfd, buf);
- 
-        // Imprime a linha de comando recebida do usuario
-        printf("Linha de comando recebida cliente: %s\n", buf);
-        // Envia a mensagem de volta para o cliente
-        write(connfd, buf, strlen(buf));
-        // Executa o comando
-        printf("Execucao do Comando:\n");
-        system(buf);
-        printf("\n");
+      InetNtop(AF_INET, buf, clientaddr);  
+        
+      // Escrever IP e porta do cliente na saida padrao
+  		printf("Client: IP %s - Port %d\n", buf, htons(clientaddr.sin_port));
+  		
+  		// Limpa o que estiver no ponteiro do socket do client
+      bzero(&clientaddr, sizeof(clientaddr));  
+      
+      // Recebe o comando do cliente
+      Read(connfd, client);
+      
+		// Imprime a linha de comando recebida do usuario
+		printf("Linha de comando recebida cliente: %s", client);
+		
+		// Enviar a mensagem de volta para o cliente
+		write(connfd, client, strlen(client));
+		
+		// Executar o comando
+		printf("Execucao do Comando:\n"); 
+		system(client);
+		printf("\n"); 
+		
       // Finalizar a conexao
       close(connfd);
    }
