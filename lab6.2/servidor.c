@@ -8,9 +8,10 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <time.h>
 
 #define LISTENQ 10
-#define MAXDATASIZE 4096
+#define MAXDATASIZE 40000
 
 // Criar um socket com as opcoes especificadas
 // Fecha o programa em caso de erro
@@ -30,7 +31,7 @@ void Bind(int listenfd, struct sockaddr_in servaddr) {
 	if (bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1) {
       perror("bind");
       exit(1);
-   	}
+   }
 }
 
 // Setar socket como passivo (aceita conexoes)
@@ -55,6 +56,7 @@ int Accept(int listenfd, struct sockaddr_in *clientaddr) {
 	}
 }
 
+// Limpa uma string
 void ClearStr(char* buffer) {
 	int i;
 	for(i = 0; i < MAXDATASIZE; i++) {
@@ -62,11 +64,11 @@ void ClearStr(char* buffer) {
 	}
 }
 
+
 // Recebe dados do cliente e escreve em um buffer
 // Se retornar algo > 0, ainda ha dados a serem escritos (ultrapassaram o tamanho do buffer)
 void Read(int sockfd, char* buffer) {
 	int read_size;
-	ClearStr(buffer);
 	read_size = recv(sockfd, buffer, MAXDATASIZE, 0);
 	if (read_size < 0) {
 		perror("read error");
@@ -78,7 +80,6 @@ void Read(int sockfd, char* buffer) {
 // Se retornar algo > 0, ainda ha dados a serem escritos (ultrapassaram o tamanho do buffer)
 void Write(int sockfd, char* buffer) {
 	int write_size;
-	ClearStr(buffer);
 	write_size = write(sockfd, buffer, strlen(buffer));
 	if (write_size < 0) {
 		perror("write error");
@@ -112,25 +113,19 @@ void Close(int connection) {
 
 // Envia o resultado do comando para o cliente
 void WriteCmd(int connfd, char *client) {
-	int backup, p[2];
-	char buf[MAXDATASIZE], cmd[MAXDATASIZE];
-	ClearStr(buf);
-	ClearStr(cmd);
-	
-	printf("writecmd %s", client);
-	
-	fflush(stdin);
+	int backup, p[2], cont = 0;
+	char c, cmd[MAXDATASIZE];
 	backup = dup(1);
 	Close(0);
 	Close(1);
 	pipe(p);
 	system(client);
 	dup2(backup, 1);
-
-	while (fgets(buf, MAXDATASIZE, stdin)){
-		strcat(cmd, buf);
+	while ((c = getchar()) && c != EOF){
+		cmd[cont] = c;
+		cont++;
 	}
-	//printf("%s\n", cmd);
+	cmd[cont] = '\0';
 	write(connfd, cmd, strlen(cmd));
 }
 
@@ -138,7 +133,7 @@ void WriteCmd(int connfd, char *client) {
    Servidor
    Aplicacao simples de servidor tcp que recebe varias
    conexoes na porta passada por parametro e executa
-   o comando enviado pelo cliente
+   o comando e envia o resultado para o cliente
 */
 int main (int argc, char **argv) {
    // Declaracao de variaveis
@@ -146,7 +141,10 @@ int main (int argc, char **argv) {
    pid_t pid;
    struct sockaddr_in servaddr;
    struct sockaddr_in clientaddr;
-   char   buf[MAXDATASIZE], error[MAXDATASIZE], client[MAXDATASIZE];
+   char   buf[MAXDATASIZE], error[MAXDATASIZE], client[MAXDATASIZE],
+   	openClient[MAXDATASIZE], closeClient[MAXDATASIZE];
+   time_t ticks;
+   FILE *file;
    
    // Checa a presenca do parametro Porta
    // caso ausente, fecha o programa
@@ -157,6 +155,9 @@ int main (int argc, char **argv) {
       perror(error);
       exit(1);
    }
+   
+   // abre um arquivo texto
+   file = fopen("log_tcp_server.txt", "w"); 
 
    // Tenta criar um socket local TCP IPv4
    listenfd = Socket(AF_INET, SOCK_STREAM, 0);
@@ -182,38 +183,53 @@ int main (int argc, char **argv) {
       // Em caso de falha fechar o programa
       connfd = Accept(listenfd, &clientaddr);
       
+      // Pegar o horario de conexao do cliente
+      // limpa o buffer
+		ClearStr(openClient);
+		ClearStr(closeClient);
+      ticks = time(NULL);
+      snprintf(openClient, MAXDATASIZE, "%.24s\r", ctime(&ticks));
+      
+      // cria um processo filho (copia identica do pai)
       if( (pid = fork()) == 0) {
-      	// fecha a conexão de escuta
+      	// fecha a conexão com o processo pai
       	Close(listenfd);
       	      
-      	 printf("OPEN\n");
-      	 
 		   // Converter informacao do IP de binario para string
 		   // armazenar o resultado no buffer
 		   InetNtop(AF_INET, buf, clientaddr);   
 		   
-		   printf("OPEN %s\n", buf);
-		   
 		   // Escrever IP, porta e string do cliente na saida padrao
-	  		printf("OPEN -> Client: IP %s - Port: %d", buf, htons(clientaddr.sin_port));
+	  		printf("OPEN -> Client - IP: %s - Port: %d\n", buf, htons(clientaddr.sin_port));
 						   	
 			// enquanto o comando for diferente de exit
 			do {
+				// limpa o buffer
+				ClearStr(client);
+			
 				// Recebe o comando do cliente
 				Read(connfd, client);
 				
 				// Escrever IP, porta e string do cliente na saida padrao
-		  		printf(" CMD -> Client: IP %s - Port: %d - String: %s", buf, htons(clientaddr.sin_port), client);
+		  		printf(" CMD -> Client - IP: %s - Port: %d - String: %s", buf, htons(clientaddr.sin_port), client);
 		  		
       		// Envia a mensagem de volta para o cliente com o resultado do comando executado
 				WriteCmd(connfd, client);
-				
+								
       	} while(strcmp(client, "exit\n"));
       	
-      	// fecha a conexão do cliente
+      	// fecha a conexão do processo filho
       	Close(connfd);
+      	
+      	// Pegar o horario de conexao do cliente
+		   ticks = time(NULL);
+		   snprintf(closeClient, MAXDATASIZE, "%.24s\r\n", ctime(&ticks));
+      	
 	   	// Escrever IP, porta e string do cliente que se desconectou
-	  		printf("CLOSE-> Client: IP %s - Port: %d\n", buf, htons(clientaddr.sin_port));
+	  		printf("CLOSE-> Client - IP: %s - Port: %d\n", buf, htons(clientaddr.sin_port));
+	  		
+	  		// Salva um arquivo texto com o historico dos clientes
+	  		fprintf(file, "IP %s\nPort: %d\nOpen: %s\nClose: %s\n", buf, htons(clientaddr.sin_port), openClient, closeClient);
 	  		
 	  		// Limpa o que estiver no ponteiro do socket do client
 			bzero(&clientaddr, sizeof(clientaddr));
@@ -223,5 +239,9 @@ int main (int argc, char **argv) {
       // Finalizar a conexao
       Close(connfd);
    }
+   
+   // fecha o arquivo
+	fclose(file);
+	
    return(0);
 }
