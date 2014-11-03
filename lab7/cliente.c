@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define MAXDATASIZE 4096
+#define MAXDATASIZE 40000
 
 // Criar um socket com as opcoes especificadas
 // Fecha o programa em caso de erro
@@ -63,6 +63,14 @@ struct sockaddr_in Getsockname(int sockfd, struct sockaddr_in sockaddress) {
 	return sockaddress;
 }
 
+// Limpa uma string
+void ClearStr(char* buffer) {
+	int i;
+	for(i = 0; i < MAXDATASIZE; i++) {
+		buffer[i] = '\0';
+	}
+}
+
 // Recebe dados do cliente e escreve em um buffer
 // Se retornar algo > 0, ainda ha dados a serem escritos (ultrapassaram o tamanho do buffer)
 void Read(int sockfd, char* buffer) {
@@ -89,7 +97,7 @@ void Write(int sockfd, char* buffer) {
    Cliente
    Aplicacao simples de cliente tcp que se conecta num
    IP e PORTA passados por parametro, envia um comando ao 
-   servidor e escreve na saida padrao o retorno
+   servidor e escreve na saida padrao o retorno do comando
 */
 int main(int argc, char **argv) {
    // Declaracao de variaveis
@@ -124,7 +132,7 @@ int main(int argc, char **argv) {
    Connect(sockfd, servaddr);
    
   	// Escrever IP e porta do servidor na saida padrao
-   printf("Server: IP %s - Port %d\n", argv[1], atoi(argv[2]));
+   printf("Server - IP: %s - Port: %d\n", argv[1], atoi(argv[2]));
    
    // Coletar informacoes sobre o socket com o servidor
    servaddr = Getsockname(sockfd, servaddr);
@@ -134,23 +142,27 @@ int main(int argc, char **argv) {
    InetNtop(AF_INET, server, servaddr);
   	
   	// Escrever IP e porta do cliente no socket na saida padrao
-  	printf("Client: IP %s - Port %d\n", server, ntohs(servaddr.sin_port));
+  	printf("Client - IP: %s - Port: %d\n", server, ntohs(servaddr.sin_port));
   	
-   // lê uma cadeia de caracteres do teclado
-   printf("Digite um comando:\n");
-   fgets(buf, MAXDATASIZE, stdin);
-   
-   // Imprime a linha de comando digitada pelo usuario
-   printf("Linha de comando digitada: %s", buf);
-   
-   // envia os dados lidos ao servidor
-   Write(sockfd , buf);
+  	printf("Digite os comandos:\n");
+  	do {
+  		// limpa o buffer
+   	ClearStr(buf);
+   	ClearStr(server_reply);
+  	
+		// lê uma cadeia de caracteres do teclado
+		fgets(buf, MAXDATASIZE, stdin);
+		
+		// envia os dados lidos ao servidor
+		Write(sockfd , buf);
 
-   // le os dados enviados pelo servidor
-   Read(sockfd, server_reply);
-   
-   // Imprime a linha de comando devolvida pelo servidor
-   printf("Linha de comando recebida: %s\n", server_reply);
+		// le os dados enviados pelo servidor
+		Read(sockfd, server_reply);
+		
+		// Imprime a linha de comando devolvida pelo servidor
+   	printf("%s\n", server_reply);  	
+   	
+	} while(strcmp(buf, "exit\n"));
    
    exit(0);
 }
