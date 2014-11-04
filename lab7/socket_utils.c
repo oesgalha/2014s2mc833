@@ -3,26 +3,24 @@
 // Aceita a conexao do cliente
 // Em caso de falha fechar o programa
 int Accept(int listenfd, struct sockaddr_in *clientaddr) {
-  int connfd, clientsize;
-  clientsize = sizeof(clientaddr);
+  int connfd, clientsize = sizeof(clientaddr);
   if ((connfd = accept(listenfd, (struct sockaddr *)clientaddr, (socklen_t*)&clientsize)) == -1 ) {
     perror("accept");
     exit(1);
-  } else {
-    return connfd;
   }
+  return connfd;
 }
 
 // Fazer um bind do socket com os parametros escolhidos
 // Fechar o programa em caso de erro
 void Bind(int listenfd, struct sockaddr_in servaddr) {
   if (bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1) {
-      perror("bind");
-      exit(1);
-   }
+    perror("bind");
+    exit(1);
+  }
 }
 
-// fecha a conexão
+// Fecha a conexao
 void Close(int connection) {
   close(connection);
 }
@@ -71,16 +69,15 @@ void InetPton(int family, char *ipaddress, struct sockaddr_in sockaddress) {
 // Fechar o programa em caso de erro
 void Listen(int listenfd, int listenq) {
   if (listen(listenfd, listenq) == -1) {
-      perror("listen");
-      exit(1);
-   }
+    perror("listen");
+    exit(1);
+  }
 }
 
 // Recebe dados do cliente e escreve em um buffer
 // Se retornar algo > 0, ainda ha dados a serem escritos (ultrapassaram o tamanho do buffer)
 void Read(int sockfd, char* buffer) {
-  int read_size;
-  read_size = recv(sockfd, buffer, MAXDATASIZE, 0);
+  int read_size = recv(sockfd, buffer, MAXDATASIZE, 0);
   if (read_size < 0) {
     perror("read error");
     exit(1);
@@ -94,16 +91,14 @@ int Socket(int family, int type, int flags) {
   if ( (sockfd = socket(family, type, flags)) < 0) {
     perror("socket error");
     exit(1);
-  } else {
-    return sockfd;
   }
+  return sockfd;
 }
 
 // Envia dados do cliente e escreve em um buffer
 // Se retornar algo > 0, ainda ha dados a serem escritos (ultrapassaram o tamanho do buffer)
 void Write(int sockfd, char* buffer) {
-  int write_size;
-  write_size = write(sockfd, buffer, strlen(buffer));
+  int write_size = write(sockfd, buffer, strlen(buffer));
   if (write_size < 0) {
     perror("write error");
     exit(1);
