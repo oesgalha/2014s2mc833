@@ -1,60 +1,7 @@
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <stdio.h>
-#include <netdb.h>
-#include <string.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <time.h>
+#include "socket_utils.h"
 
 #define LISTENQ 10
-#define MAXDATASIZE 40000
-
-// Criar um socket com as opcoes especificadas
-// Fecha o programa em caso de erro
-int Socket(int family, int type, int flags) {
-	int sockfd;
-	if ( (sockfd = socket(family, type, flags)) < 0) {
-	 	perror("socket error");
-	 	exit(1);
-	} else {
-	  return sockfd;
-	}
-}
-
-// Fazer um bind do socket com os parametros escolhidos
-// Fechar o programa em caso de erro
-void Bind(int listenfd, struct sockaddr_in servaddr) {
-	if (bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1) {
-      perror("bind");
-      exit(1);
-   }
-}
-
-// Setar socket como passivo (aceita conexoes)
-// Fechar o programa em caso de erro
-void Listen(int listenfd, int listenq) {
-	if (listen(listenfd, listenq) == -1) {
-      perror("listen");
-      exit(1);
-   }
-}
-
-// Aceita a conexao do cliente
-// Em caso de falha fechar o programa
-int Accept(int listenfd, struct sockaddr_in *clientaddr) {
-	int connfd, clientsize;
-	clientsize = sizeof(clientaddr);
-	if ((connfd = accept(listenfd, (struct sockaddr *)clientaddr, (socklen_t*)&clientsize)) == -1 ) {
-		perror("accept");
-		exit(1);
-	} else {
-		return connfd;
-	}
-}
 
 // Limpa uma string
 void ClearStr(char* buffer) {
@@ -62,53 +9,6 @@ void ClearStr(char* buffer) {
 	for(i = 0; i < MAXDATASIZE; i++) {
 		buffer[i] = '\0';
 	}
-}
-
-
-// Recebe dados do cliente e escreve em um buffer
-// Se retornar algo > 0, ainda ha dados a serem escritos (ultrapassaram o tamanho do buffer)
-void Read(int sockfd, char* buffer) {
-	int read_size;
-	read_size = recv(sockfd, buffer, MAXDATASIZE, 0);
-	if (read_size < 0) {
-		perror("read error");
-		exit(1);
-	}
-}
-
-// Envia dados do cliente e escreve em um buffer
-// Se retornar algo > 0, ainda ha dados a serem escritos (ultrapassaram o tamanho do buffer)
-void Write(int sockfd, char* buffer) {
-	int write_size;
-	write_size = write(sockfd, buffer, strlen(buffer));
-	if (write_size < 0) {
-		perror("write error");
-		exit(1);
-	}
-}
-
-// Converte um IP string para a forma binaria da struct sockaddr_in
-// Fecha o programa em caso de erro
-void InetPton(int family, char *ipaddress, struct sockaddr_in sockaddress) {
-  if (inet_pton(family, ipaddress, &sockaddress.sin_addr) <= 0) {
-    perror("inet_pton error");
-    exit(1);
-  }
-}
-
-// Converte o IP da forma binaria da struct sockaddr_in para uma string
-// e armazena em buffer
-// Fecha o programa em caso de erro
-void InetNtop(int family, char* buffer, struct sockaddr_in sockaddress) {
-  	if (inet_ntop(family, &sockaddress.sin_addr, buffer, sizeof(char)*MAXDATASIZE) <= 0) {
-    	perror("inet_ntop error");
-    	exit(1);
- 	}
-}
-
-// fecha a conexão
-void Close(int connection) {
-	close(connection);
 }
 
 // Envia o resultado do comando para o cliente
