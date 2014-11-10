@@ -1,8 +1,6 @@
 #include <time.h>
 #include "socket_utils.h"
 
-#define LISTENQ 10
-
 // Limpa uma string
 void ClearStr(char* buffer) {
 	int i;
@@ -48,10 +46,11 @@ int main (int argc, char **argv) {
    
    // Checa a presenca do parametro Porta
    // caso ausente, fecha o programa
-   if (argc != 2) {
+   if (argc != 3) {
       strcpy(error,"uso: ");
-      strcat(error,argv[0]);
+      strcat(error, argv[0]);
       strcat(error," <Port>");
+      strcat(error," <Backlog Size>");
       perror(error);
       exit(1);
    }
@@ -75,7 +74,7 @@ int main (int argc, char **argv) {
    
    // Setar socket como passivo (aceita conexoes)
    // Em caso de falha, fechar o programa
-   Listen(listenfd, LISTENQ);
+   Listen(listenfd, atoi(argv[2]));
 
    // Loop infinito
    for ( ; ; ) {
@@ -118,6 +117,8 @@ int main (int argc, char **argv) {
 								
       	} while(strcmp(client, "exit\n"));
       	
+         sleep(3);
+
       	// fecha a conexão do processo filho
       	Close(connfd);
       	
