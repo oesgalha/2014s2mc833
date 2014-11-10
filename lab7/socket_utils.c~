@@ -105,7 +105,7 @@ void Write(int sockfd, char* buffer) {
   }
 }
 
-// Função que trata o sig_chld
+// Função que trata o sinal
 void sig_chld(int signo) { 
 	pid_t pid; 
 	int stat; 
@@ -121,7 +121,6 @@ void err_sys(const char* x)
     exit(1); 
 }
 
-// função para tratar o sinal
 Sigfunc * Signal (int signo, Sigfunc *func) 
 { 
 	struct sigaction act, oact; 
