@@ -78,6 +78,8 @@ int main(int argc, char **argv) {
    	printf("%s\n", server_reply);  	
    	
 	} while(strcmp(buf, "exit\n"));
+
+  Close(sockfd);
    
-   exit(0);
+  exit(0);
 }

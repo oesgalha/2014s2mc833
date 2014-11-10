@@ -114,10 +114,10 @@ int main (int argc, char **argv) {
 		  		
       		// Envia a mensagem de volta para o cliente com o resultado do comando executado
 				WriteCmd(connfd, client);
-								
+
       	} while(strcmp(client, "exit\n"));
       	
-         sleep(3);
+         sleep(5);
 
       	// fecha a conexão do processo filho
       	Close(connfd);
