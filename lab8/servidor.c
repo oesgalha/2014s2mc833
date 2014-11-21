@@ -10,47 +10,23 @@ void ClearStr(char* buffer) {
 	}
 }
 
-// Envia o resultado do comando para o cliente
-void WriteCmd(int connfd, char *client) {
-	int backup, p[2], cont = 0;
-	char c, cmd[MAXDATASIZE];
-	backup = dup(1);
-	Close(0);
-	Close(1);
-	pipe(p);
-	system(client);
-	dup2(backup, 1);
-	while ((c = getchar()) && c != EOF){
-		cmd[cont] = c;
-		cont++;
-	}
-	cmd[cont] = '\0';
-	write(connfd, cmd, strlen(cmd));
-}
-
 int main (int argc, char **argv) {
    // Declaracao de variaveis
    int listenfd, connfd;
    pid_t pid;
    struct sockaddr_in servaddr;
    struct sockaddr_in clientaddr;
-   char   buf[MAXDATASIZE], error[MAXDATASIZE], client[MAXDATASIZE],
-   	openClient[MAXDATASIZE], closeClient[MAXDATASIZE];
-   time_t ticks;
-   FILE *file;
-   
+   char buf[MAXDATASIZE], client[MAXDATASIZE];
+
    // Checa a presenca do parametro Porta
    // caso ausente, fecha o programa
    if (argc != 2) {
-      strcpy(error,"uso: ");
-      strcat(error,argv[0]);
-      strcat(error," <Port>");
-      perror(error);
+      strcpy(buf, "uso: ");
+      strcat(buf, argv[0]);
+      strcat(buf, " <Port>");
+      perror(buf);
       exit(1);
    }
-   
-   // abre um arquivo texto
-   file = fopen("log_tcp_server.txt", "w"); 
 
    // Tenta criar um socket local TCP IPv4
    listenfd = Socket(AF_INET, SOCK_STREAM, 0);
@@ -65,7 +41,7 @@ int main (int argc, char **argv) {
 
    // Tentar fazer o bind do socket de servidor na porta escolhida
    Bind(listenfd, servaddr);
-   
+
    // Setar socket como passivo (aceita conexoes)
    // Em caso de falha, fechar o programa
    Listen(listenfd, LISTENQ);
@@ -75,66 +51,37 @@ int main (int argc, char **argv) {
       // Se chegou uma conexao
       // Em caso de falha fechar o programa
       connfd = Accept(listenfd, &clientaddr);
-      
-      // Pegar o horario de conexao do cliente
-      // limpa o buffer
-		ClearStr(openClient);
-		ClearStr(closeClient);
-      ticks = time(NULL);
-      snprintf(openClient, MAXDATASIZE, "%.24s\r", ctime(&ticks));
-      
+
       // cria um processo filho (copia identica do pai)
       if( (pid = fork()) == 0) {
-      	// fecha a conexão com o processo pai
-      	Close(listenfd);
-      	      
-		   // Converter informacao do IP de binario para string
-		   // armazenar o resultado no buffer
-		   InetNtop(AF_INET, buf, clientaddr);   
-		   
-		   // Escrever IP, porta e string do cliente na saida padrao
-	  		printf("OPEN -> Client - IP: %s - Port: %d\n", buf, htons(clientaddr.sin_port));
-						   	
-			// enquanto o comando for diferente de exit
-			//do {
-				// limpa o buffer
-				ClearStr(client);
-			
-				// Recebe o comando do cliente
-				Read(connfd, client);
-				
-				// Escrever IP, porta e string do cliente na saida padrao
-		  		printf("%s", client);
-		  		
-      		// Envia a mensagem de volta para o cliente com o resultado do comando executado
-				WriteCmd(connfd, client);
-								
-      	//} while(!feof(stdin));
-      	
-      	// fecha a conexão do processo filho
-      	Close(connfd);
-      	
-      	// Pegar o horario de conexao do cliente
-		   ticks = time(NULL);
-		   snprintf(closeClient, MAXDATASIZE, "%.24s\r\n", ctime(&ticks));
-      	
-	   	// Escrever IP, porta e string do cliente que se desconectou
-	  		printf("CLOSE-> Client - IP: %s - Port: %d\n", buf, htons(clientaddr.sin_port));
-	  		
-	  		// Salva um arquivo texto com o historico dos clientes
-	  		fprintf(file, "IP %s\nPort: %d\nOpen: %s\nClose: %s\n", buf, htons(clientaddr.sin_port), openClient, closeClient);
-	  		
-	  		// Limpa o que estiver no ponteiro do socket do client
-			bzero(&clientaddr, sizeof(clientaddr));
-   		exit(0);
-		}
-		
+         // fecha a conexão com o processo pai
+         Close(listenfd);
+         // Converter informacao do IP de binario para string
+         // armazenar o resultado no buffer
+         InetNtop(AF_INET, buf, clientaddr);
+         // Escrever IP, porta e string do cliente na saida padrao
+         printf("OPEN -> Client - IP: %s - Port: %d\n", buf, htons(clientaddr.sin_port));
+         // enquanto o comando for diferente de exit
+         do {
+            // limpa o buffer
+            ClearStr(client);
+            // Recebe o comando do cliente
+            Read(connfd, client);
+            printf("%s", client);
+            // Envia a mensagem de volta para o cliente
+            Write(connfd, client);
+         } while(strcmp(client, "exit\n"));
+         // fecha a conexão do processo filho
+         Close(connfd);
+         // Escrever IP, porta e string do cliente que se desconectou
+         printf("CLOSE-> Client - IP: %s - Port: %d\n", buf, htons(clientaddr.sin_port));
+         // Limpa o que estiver no ponteiro do socket do client
+         bzero(&clientaddr, sizeof(clientaddr));
+         exit(0);
+      }
       // Finalizar a conexao
       Close(connfd);
    }
-   
-   // fecha o arquivo
-	fclose(file);
-	
-   return(0);
+
+   return 0;
 }

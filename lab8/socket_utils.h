@@ -25,5 +25,4 @@ void Listen(int listenfd, int listenq);
 void Read(int sockfd, char* buffer);
 int Socket(int family, int type, int flags);
 void Write(int sockfd, char* buffer);
-void Select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset, 
-	struct timeval *timeout);
+void Select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset, struct timeval *timeout);
