@@ -3,7 +3,7 @@
 
 int main(int argc, char **argv) {
    // Declaracao de variaveis
-   int sockfd;//, maxfdp1;
+   int sockfd, reading_input = TRUE, reading_socket = TRUE;
    char buf[MAXDATASIZE + 1];
    struct sockaddr_in servaddr;
    fd_set rset;
@@ -33,31 +33,35 @@ int main(int argc, char **argv) {
    // Conecta o socket local com o socket servidor
    Connect(sockfd, servaddr);
 
-   for ( ; ; ) {
+   while(reading_input || reading_socket) {
       // Resetar rset
       FD_ZERO(&rset);
-      FD_SET(STDIN_FILENO, &rset);
-      FD_SET(sockfd, &rset);
+      if (reading_input)
+         FD_SET(STDIN_FILENO, &rset);
+      if (reading_socket)
+         FD_SET(sockfd, &rset);
       // Como o STDIN_FILENO = 0, podemos usar sempre sockfd como valor MAX
       Select(sockfd + 1, &rset, NULL, NULL, NULL);
       // se tem atividade no socket
       if (FD_ISSET(sockfd, &rset)) {
          // le os dados enviados pelo servidor
-         Read(sockfd, buf);
-         // Imprime o texto devolvida pelo servidor
-         printf("%s", buf);
+         if (Read(sockfd, buf) == 0) {
+            reading_socket = FALSE;
+         } else {
+            // Imprime o texto devolvida pelo servidor
+            printf("%s", buf);
+         }
       }
       // se atividade na entrada padrao
       if (FD_ISSET(STDIN_FILENO, &rset)) {
          // le uma cadeia de caracteres da entrada padrao
          if (fgets(buf, MAXDATASIZE, stdin) == NULL) {
-            strcpy(buf,"exit\n");
-            Write(sockfd , buf);
-            break;
+            shutdown(sockfd, SHUT_WR);
+            reading_input = FALSE;
+         } else {
+            // envia os dados lidos ao servidor
+            Write(sockfd, buf);
          }
-         // envia os dados lidos ao servidor
-         Write(sockfd, buf);
-         sleep(1);
       }
    }
    return 0;

@@ -76,12 +76,13 @@ void Listen(int listenfd, int listenq) {
 
 // Recebe dados do cliente e escreve em um buffer
 // Se retornar algo > 0, ainda ha dados a serem escritos (ultrapassaram o tamanho do buffer)
-void Read(int sockfd, char* buffer) {
+int Read(int sockfd, char* buffer) {
   int read_size = recv(sockfd, buffer, MAXDATASIZE, 0);
   if (read_size < 0) {
     perror("read error");
     exit(1);
   }
+  return read_size;
 }
 
 // Criar um socket com as opcoes especificadas

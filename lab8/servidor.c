@@ -61,16 +61,19 @@ int main (int argc, char **argv) {
          InetNtop(AF_INET, buf, clientaddr);
          // Escrever IP, porta e string do cliente na saida padrao
          printf("OPEN -> Client - IP: %s - Port: %d\n", buf, htons(clientaddr.sin_port));
-         // enquanto o comando for diferente de exit
-         do {
+         int reading_client = TRUE;
+         while(reading_client) {
             // limpa o buffer
             ClearStr(client);
             // Recebe o comando do cliente
-            Read(connfd, client);
-            printf("%s", client);
-            // Envia a mensagem de volta para o cliente
-            Write(connfd, client);
-         } while(strcmp(client, "exit\n"));
+            if (Read(connfd, client) == FALSE) {
+               reading_client = FALSE;
+            } else {
+               printf("%s", client);
+               // Envia a mensagem de volta para o cliente
+               Write(connfd, client);
+            }
+         }
          // fecha a conexão do processo filho
          Close(connfd);
          // Escrever IP, porta e string do cliente que se desconectou
