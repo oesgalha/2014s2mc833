@@ -4,10 +4,10 @@
 
 // Limpa uma string
 void ClearStr(char* buffer) {
-	int i;
-	for(i = 0; i < MAXDATASIZE; i++) {
-		buffer[i] = '\0';
-	}
+   int i;
+   for(i = 0; i < MAXDATASIZE; i++) {
+      buffer[i] = '\0';
+   }
 }
 
 int main (int argc, char **argv) {
