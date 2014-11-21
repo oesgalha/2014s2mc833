@@ -1,10 +1,17 @@
 /* Cliente TCP */
 #include "socket_utils.h"
 
+void ClearStr(char* buffer) {
+   int i;
+   for(i = 0; i < MAXDATASIZE; i++) {
+      buffer[i] = '\0';
+   }
+}
+
 int main(int argc, char **argv) {
    // Declaracao de variaveis
    int sockfd, reading_input = TRUE, reading_socket = TRUE;
-   char buf[MAXDATASIZE + 1];
+   char buf[MAXDATASIZE + 1], server[MAXDATASIZE];
    struct sockaddr_in servaddr;
    fd_set rset;
 
@@ -44,16 +51,18 @@ int main(int argc, char **argv) {
       Select(sockfd + 1, &rset, NULL, NULL, NULL);
       // se tem atividade no socket
       if (FD_ISSET(sockfd, &rset)) {
+         ClearStr(server);
          // le os dados enviados pelo servidor
-         if (Read(sockfd, buf) == 0) {
+         if (Read(sockfd, server) == 0) {
             reading_socket = FALSE;
          } else {
             // Imprime o texto devolvida pelo servidor
-            printf("%s", buf);
+            printf("%s", server);
          }
       }
       // se atividade na entrada padrao
       if (FD_ISSET(STDIN_FILENO, &rset)) {
+         ClearStr(buf);
          // le uma cadeia de caracteres da entrada padrao
          if (fgets(buf, MAXDATASIZE, stdin) == NULL) {
             shutdown(sockfd, SHUT_WR);
