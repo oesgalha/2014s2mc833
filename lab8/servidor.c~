@@ -77,7 +77,7 @@ int main (int argc, char **argv) {
          // fecha a conexão do processo filho
          Close(connfd);
          // Escrever IP, porta e string do cliente que se desconectou
-         printf("\nCLOSE-> Client - IP: %s - Port: %d\n", buf, htons(clientaddr.sin_port));
+         printf("CLOSE-> Client - IP: %s - Port: %d\n", buf, htons(clientaddr.sin_port));
          // Limpa o que estiver no ponteiro do socket do client
          bzero(&clientaddr, sizeof(clientaddr));
          exit(0);
