@@ -1,2 +1,0 @@
-Server - IP: 127.0.0.1 - Port: 3004
-Client - IP: 127.0.0.1 - Port: 40958
