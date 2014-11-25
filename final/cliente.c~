@@ -8,10 +8,10 @@ int main(int argc, char **argv) {
 
    // Checa a presenca do parametro de IP e Porta
    // caso ausente, fecha o programa
-   if (argc != 2) {
+   if (argc != 3) {
       strcpy(buf, "uso: ");
       strcat(buf, argv[0]);
-      strcat(buf, " <IPaddress>");
+      strcat(buf, " <IPaddress> <Port>");
       perror(buf);
       exit(1);
    }
