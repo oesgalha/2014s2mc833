@@ -31,7 +31,6 @@ int main (int argc, char **argv) {
 	Bind(sockfd, servaddr);
 
 	// Chama a funcao DgEcho para fazer o funcionamento de servidor
-	DgEcho(sockfd, cliaddr);
-	
+	DgEcho(sockfd, &cliaddr);	
    return 0;
 }

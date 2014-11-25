@@ -30,8 +30,7 @@ int main (int argc, char **argv) {
 	// Tentar fazer o bind do socket de servidor na porta escolhida
 	Bind(sockfd, servaddr);
 
-	// Chama a funcao DgEcho para fazer o funcionamento de servidor
-	DgEcho(sockfd, &cliaddr);
-	
+	// Chama a funcao DgEcho para fazer o funcionamento do servidor
+	DgEcho(sockfd, &cliaddr);	
    return 0;
 }
