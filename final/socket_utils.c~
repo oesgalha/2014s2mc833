@@ -1,5 +1,4 @@
 #include "socket_utils.h"
-#define MAXLINE 1024
 
 // Aceita a conexao do cliente
 // Em caso de falha fechar o programa
@@ -132,7 +131,6 @@ void dgEcho(int sockfd, struct sockaddr *pcliaddr, socklen_t clilen){
 	for( ; ; ) {
 		len = clilen;
 		n = Recvfrom(sockfd, msg, MAXLINE, 0, pcliaddr, &len);
-		printf("Teste %d - msg: %s\n", n, msg);
 		Sendto(sockfd, msg, n, 0, pcliaddr, len);
 	}
 }
@@ -142,10 +140,8 @@ void dgCli(FILE *fp, int sockfd, struct sockaddr *pservaddr, socklen_t servlen){
 	char sendline[MAXLINE], recvline[MAXLINE+1];
 	
 	while(fgets(sendline, MAXLINE, fp) != NULL) {
-		printf("%s\n", sendline);
 		Sendto(sockfd, sendline, strlen(sendline), 0, pservaddr, servlen);
 		n = Recvfrom(sockfd, recvline, MAXLINE, 0, NULL, NULL);
-		//printf("Teste %d: %s\n", n, recvline);
 		recvline[n] = 0;
 		fputs(recvline, stdout);
 	}

@@ -12,9 +12,9 @@
 #include <math.h>
 
 #define LISTENQ 10
-#define MAXDATASIZE 40000
+#define MAXLINE 4096
 //#define PORT 2015
-#define PORT 2019
+#define PORT 2057
 
 #define TRUE 1
 #define FALSE 0

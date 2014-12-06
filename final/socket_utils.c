@@ -1,5 +1,4 @@
 #include "socket_utils.h"
-#define MAXLINE 1024
 
 // Aceita a conexao do cliente
 // Em caso de falha fechar o programa
@@ -51,7 +50,7 @@ struct sockaddr_in Getsockname(int sockfd, struct sockaddr_in sockaddress) {
 // e armazena em buffer
 // Fecha o programa em caso de erro
 void InetNtop(int family, char* buffer, struct sockaddr_in sockaddress) {
-  if (inet_ntop(family, &sockaddress.sin_addr, buffer, sizeof(char)*MAXDATASIZE) <= 0) {
+  if (inet_ntop(family, &sockaddress.sin_addr, buffer, sizeof(char)*MAXLINE) <= 0) {
     perror("inet_ntop error");
     exit(1);
   }
@@ -78,7 +77,7 @@ void Listen(int listenfd, int listenq) {
 // Recebe dados do cliente e escreve em um buffer
 // Se retornar algo > 0, ainda ha dados a serem escritos (ultrapassaram o tamanho do buffer)
 int Read(int sockfd, char* buffer) {
-  int read_size = recv(sockfd, buffer, MAXDATASIZE, 0);
+  int read_size = recv(sockfd, buffer, MAXLINE, 0);
   if (read_size < 0) {
     perror("read error");
     exit(1);
