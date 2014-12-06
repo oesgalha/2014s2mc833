@@ -6,12 +6,12 @@ int main(int argc, char **argv) {
    char buf[MAXDATASIZE];
    struct sockaddr_in servaddr;
 
-   // Checa a presenca do parametro de IP e Porta
+   // Checa a presenca do parametro de IP
    // caso ausente, fecha o programa
-   if (argc != 3) {
+   if (argc != 2) {
       strcpy(buf, "uso: ");
       strcat(buf, argv[0]);
-      strcat(buf, " <IPaddress> <Port>");
+      strcat(buf, " <IPaddress>");
       perror(buf);
       exit(1);
    }
@@ -29,6 +29,6 @@ int main(int argc, char **argv) {
    sockfd = Socket(AF_INET, SOCK_DGRAM, 0);
 
 	// Chama a funcao DgCli para fazer o funcionamento de cliente
-	DgCli(stdin, sockfd, &servaddr);
+	dgCli(stdin, sockfd, (SA *) &servaddr, sizeof(servaddr));
    return 0;
 }

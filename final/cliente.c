@@ -6,7 +6,7 @@ int main(int argc, char **argv) {
    char buf[MAXDATASIZE];
    struct sockaddr_in servaddr;
 
-   // Checa a presenca do parametro de IP e Porta
+   // Checa a presenca do parametro de IP
    // caso ausente, fecha o programa
    if (argc != 2) {
       strcpy(buf, "uso: ");
@@ -29,6 +29,6 @@ int main(int argc, char **argv) {
    sockfd = Socket(AF_INET, SOCK_DGRAM, 0);
 
 	// Chama a funcao DgCli para fazer o funcionamento de cliente
-	DgCli(stdin, sockfd, &servaddr);
+	dgCli(stdin, sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr));
    return 0;
 }

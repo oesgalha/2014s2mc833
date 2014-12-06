@@ -114,31 +114,35 @@ void Select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset, s
    }
 }
 
-int Recvfrom(int sockfd, void *msg, size_t n, int flags, struct sockaddr_in *addr){
-	return recvfrom(sockfd, msg, n, flags, (struct sockaddr *)addr, (socklen_t *)sizeof(addr));
+ssize_t Recvfrom(int sockfd, void *msg, size_t n, int flags, struct sockaddr *from, 
+	socklen_t *addr){
+	return recvfrom(sockfd, msg, n, flags, from, addr);
 }
 
-int Sendto(int sockfd, const void *msg, size_t n, int flags, struct sockaddr_in *addr){
-	return sendto(sockfd, msg, n, flags, (struct sockaddr *)&addr, sizeof(addr));
+ssize_t Sendto(int sockfd, const void *msg, size_t n, int flags, const struct sockaddr *to,
+	socklen_t addr){
+	return sendto(sockfd, msg, n, flags, to, addr);
 }
 
-void DgEcho(int sockfd, struct sockaddr_in *addr){
+void dgEcho(int sockfd, struct sockaddr *pcliaddr, socklen_t clilen){
 	int n;
+	socklen_t len;
 	char msg[MAXLINE];
 	
 	for( ; ; ) {
-		n = Recvfrom(sockfd, msg, MAXLINE, 0, addr);
-		Sendto(sockfd, msg, n, 0, addr);
+		len = clilen;
+		n = Recvfrom(sockfd, msg, MAXLINE, 0, pcliaddr, &len);
+		Sendto(sockfd, msg, n, 0, pcliaddr, len);
 	}
 }
 
-void DgCli(FILE *fp, int sockfd, struct sockaddr_in *addr){
+void dgCli(FILE *fp, int sockfd, struct sockaddr *pservaddr, socklen_t servlen){
 	int n;
 	char sendline[MAXLINE], recvline[MAXLINE+1];
 	
 	while(fgets(sendline, MAXLINE, fp) != NULL) {
-		Sendto(sockfd, sendline, strlen(sendline), 0, addr);
-		n = Recvfrom(sockfd, recvline, MAXLINE, 0, NULL);
+		Sendto(sockfd, sendline, strlen(sendline), 0, pservaddr, servlen);
+		n = Recvfrom(sockfd, recvline, MAXLINE, 0, NULL, NULL);
 		recvline[n] = 0;
 		fputs(recvline, stdout);
 	}

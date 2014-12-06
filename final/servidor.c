@@ -3,18 +3,8 @@
 int main (int argc, char **argv) {
 	// Declaracao de variaveis
 	int sockfd;
-	char buf[MAXDATASIZE];
 	struct sockaddr_in servaddr;
 	struct sockaddr_in cliaddr;
-
-	// Checa a presenca do parametro Porta
-	// caso ausente, fecha o programa
-	if (argc != 1) {
-		strcpy(buf, "uso: ");
-		strcat(buf, argv[0]);
-		perror(buf);
-		exit(1);
-	}
 
 	// Tenta criar um socket local UDP IPv4
 	sockfd = Socket(AF_INET, SOCK_DGRAM, 0);
@@ -31,6 +21,6 @@ int main (int argc, char **argv) {
 	Bind(sockfd, servaddr);
 
 	// Chama a funcao DgEcho para fazer o funcionamento do servidor
-	DgEcho(sockfd, &cliaddr);	
+	dgEcho(sockfd, (struct sockaddr *) &cliaddr, sizeof(cliaddr));	
    return 0;
 }
