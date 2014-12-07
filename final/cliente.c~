@@ -3,7 +3,7 @@
 int main(int argc, char **argv) {
    // Declaracao de variaveis
    int sockfd;
-   char buf[MAXLINE]
+   char buf[MAXLINE];
    struct sockaddr_in servaddr;
 
    // Checa a presenca do parametro de IP

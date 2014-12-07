@@ -11,7 +11,7 @@ int main(int argc, char **argv) {
    if (argc != 2) {
       strcpy(buf, "uso: ");
       strcat(buf, argv[0]);
-      strcat(buf, " <IPaddress>");
+      strcat(buf, " <IPaddress or Servername>");
       perror(buf);
       exit(1);
    }
