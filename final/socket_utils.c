@@ -107,7 +107,7 @@ void Write(int sockfd, char* buffer) {
 }
 
 void Select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset, struct timeval *timeout) {
-   if ( !select(maxfdp1, readset, writeset, exceptset, timeout) ) {
+   if ( -1 == select(maxfdp1, readset, writeset, exceptset, timeout) ) {
       perror("select error");
       exit(1);
    }

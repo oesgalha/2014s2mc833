@@ -1,10 +1,19 @@
 #include "socket_utils.h"
 
+void ClearStr(char* buffer) {
+   int i;
+   for(i = 0; i < MAXLINE; i++) {
+      buffer[i] = '\0';
+   }
+}
+
 int main(int argc, char **argv) {
    // Declaracao de variaveis
-   int sockfd;
-   char buf[MAXLINE];
+   int n, sockfd, reading_input = TRUE, reading_socket = TRUE;
+   char buf[MAXLINE], server[MAXLINE+1];
    struct sockaddr_in servaddr;
+   struct timeval timeout;
+   fd_set rset;
 
    // Checa a presenca do parametro de IP
    // caso ausente, fecha o programa
@@ -28,7 +37,41 @@ int main(int argc, char **argv) {
    // Cria um socket
    sockfd = Socket(AF_INET, SOCK_DGRAM, 0);
 
-	// Chama a funcao DgCli para fazer o funcionamento de cliente
-	dgCli(stdin, sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr));
+   while(reading_input || reading_socket) {
+      // Resetar rset
+      FD_ZERO(&rset);
+      // Timeout (2 min sem acao do usuario)
+      timeout.tv_sec = 5;
+      timeout.tv_usec = 0;
+      if (reading_input)
+         FD_SET(STDIN_FILENO, &rset);
+      if (reading_socket)
+         FD_SET(sockfd, &rset);
+      // Como o STDIN_FILENO = 0, podemos usar sempre sockfd como valor MAX
+      Select(sockfd + 1, &rset, NULL, NULL, &timeout);
+      // se tem atividade no socket
+      if (FD_ISSET(sockfd, &rset)) {
+         ClearStr(server);
+         // le os dados enviados pelo servidor
+         n = Recvfrom(sockfd, server, MAXLINE, 0, NULL, NULL);
+         server[n] = 0;
+         // Imprime o texto devolvida pelo servidor
+         fputs(server, stdout);
+      }
+      // se atividade na entrada padrao
+      if (FD_ISSET(STDIN_FILENO, &rset)) {
+         ClearStr(buf);
+         // le uma cadeia de caracteres da entrada padrao
+         if (fgets(buf, MAXLINE, stdin) == NULL) {
+            reading_input = FALSE;
+         } else {
+            // envia os dados lidos ao servidor
+            Sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr *) &servaddr,  sizeof(servaddr));
+         }
+      }
+   }
+
+   // Chama a funcao DgCli para fazer o funcionamento de cliente
+   //dgCli(stdin, sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr));
    return 0;
 }

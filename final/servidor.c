@@ -13,8 +13,8 @@ typedef struct NoClient {
 
 // estrutura de lista que contem dados sobre os clientes conectados
 typedef struct Clients {
-	int n;                       // numero de clientes
-	NoClient *connected;         // vetor de clientes conectados
+   int n;                        // numero de clientes
+   NoClient *connected;          // vetor de clientes conectados
 } Clients;
 
 void clearMem(Clients *cli) {
@@ -46,7 +46,7 @@ Clients *initClients() {
 }
 
 // conecta cliente com o bate-papo
-void clientConnect(Clients *cli, int sockfd, struct sockaddr_in cliaddr, char *ip, int port, char *username) {	
+void clientConnect(Clients *cli, int sockfd, struct sockaddr_in cliaddr, char *ip, int port, char *username) {
    NoClient *newClient = (NoClient*)malloc(sizeof(NoClient));
    newClient->next = cli->connected;
    newClient->ip = ip;
@@ -85,6 +85,13 @@ void clientDesconnect(Clients *cli, char *ip, int port) {
    }
 }
 
+// Envia mensagem para um cliente
+void sendMsgToClient(NoClient *client, char *msg) {
+   socklen_t clilen = sizeof(client->cliaddr);
+   printf("Sending msg to client - IP: %s - Port: %d - Msg: %s", client->ip, client->port, msg);
+   Sendto(client->sockfd, msg, MAXLINE, 0, (const struct sockaddr *) &(client->cliaddr), clilen);
+}
+
 // envia uma string com a lista de clientes conectados no bate-papo
 void listClientConnected(Clients *cli) {
    NoClient *client = cli->connected;
@@ -100,27 +107,19 @@ void listClientConnected(Clients *cli) {
       client = client->next;
       cont++;
    }
-   strcat(msg,"\nEnter username you want to chat: ");
    Sendto(cli->connected->sockfd, msg, MAXLINE, 0, (const struct sockaddr *) &(cli->connected->cliaddr), clilen);
 }
 
 // trata a primeira vez que o cliente se conecta com o bate-papo
-void firstConnect(Clients *cli, int sockfd, struct sockaddr_in cliaddr, char *ip, int port) {
-   socklen_t clilen = sizeof(cliaddr);
-   char *username;
-
-   // envia uma mensagem de sucesso para o cliente e solicita o username
-   Sendto(sockfd, "Connected!\nInsert username: ", 40, 0, (struct sockaddr *) &cliaddr, clilen);
-
-   // Recebe o username enviado pelo cliente
-   username = (char*)malloc(MAXLINE * sizeof(char));
-   Recvfrom(sockfd, username, MAXLINE, 0, (struct sockaddr *) &cliaddr, &clilen);
-
+void firstConnect(Clients *cli, int sockfd, struct sockaddr_in cliaddr, char *ip, int port, char *msg) {
+   char *username = (char*)malloc(MAXLINE * sizeof(char));
+   // Descobre o username do cliente
+   strncpy(username, &msg[8], MAXLINE-7);
    // conecta o cliente no bate-papo
    clientConnect(cli, sockfd, cliaddr, ip, port, username);
-
-   // Envia a mensagem com a lista de todos os usuarios para o cliente
-   listClientConnected(cli);
+   // envia uma mensagem de sucesso para o cliente e solicita o username
+   sendMsgToClient(cli->connected, "Connected!\n");
+   //Sendto(sockfd, "Connected!\n", 40, 0, (struct sockaddr *) &cliaddr, clilen);
 }
 
 char *getUsernameOrig(Clients *cli, char *ip, int port) {
@@ -223,7 +222,7 @@ void routerMsg(char *msg, Clients *cli, int sockfd, struct sockaddr_in cliaddr, 
    socklen_t clilen = sizeof(cliaddr);
 
    if(strncmp(msg, "connect", 7) == 0) {
-      firstConnect(cli, sockfd, cliaddr, ip, port);
+      firstConnect(cli, sockfd, cliaddr, ip, port, msg);
    } else if(strncmp(msg, "list", 4) == 0) {
       listClientConnected(cli);
    } else if(strncmp(msg, "user", 4) == 0) {
@@ -270,7 +269,7 @@ int main (int argc, char **argv) {
       port = htons(cliaddr.sin_port);
 
       // Escrever IP, porta e string do cliente na saida padrao
-      printf("Client - IP: %s - Port: %d - Msg: %s", ip, port, msg);
+      printf("Incoming msg from client - IP: %s - Port: %d - Msg: %s", ip, port, msg);
 
       // faz o tratamento da mensagem
       routerMsg(msg, cli, sockfd, cliaddr, ip, port);
