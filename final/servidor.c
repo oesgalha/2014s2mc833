@@ -125,29 +125,6 @@ void firstConnect(Clients *cli, NoClient *client, char *msg) {
    clientConnect(cli, client, username);
    // envia uma mensagem de sucesso para o cliente e solicita o username
    sendMsgToClient(cli->connected, "Connected!\n");
-   //Sendto(sockfd, "Connected!\n", 40, 0, (struct sockaddr *) &cliaddr, clilen);
-}
-
-char *getUsernameOrig(Clients *cli, char *ip, int port) {
-   NoClient *client = cli->connected;
-   while (client != NULL) {
-      if( (strcmp(client->ip, ip) == 0) && client->port == port) {
-         return client->username;
-      }
-      client = client->next;
-   }
-   return NULL;
-}
-
-char *getUsernameDest(Clients *cli, char *usernameOrig) {
-   NoClient *client = cli->connected;
-   while (client != NULL) {
-      if(strcmp(client->username, usernameOrig) == 0) {
-         return client->clidest;
-      }
-      client = client->next;
-   }
-   return NULL;
 }
 
 // faz a busca e retorna um no de cliente
@@ -169,59 +146,38 @@ NoClient *getClient(Clients *cli, char *username, char *ip, int port) {
 }
 
 // conecta cliente com o outro
-void clientConnectclient(Clients *cli, char *ip, int port, char *msg) {
-   NoClient *clientOrig, *clientDest;
-   socklen_t clilen = sizeof(cli->connected->cliaddr);
+void clientConnectclient(Clients *cli, NoClient *clientOrig, char *msg) {
+   NoClient *clientDest;
    char returnMsg[MAXLINE], usernameDest[MAXLINE];
-   memcpy(&usernameDest, &msg[5], MAXLINE);
-   int connected = FALSE;
-
-   // busca o cliente de origem
-   clientOrig = getClient(cli, NULL, ip, port);
+   strncpy(usernameDest, &msg[6], MAXLINE-7);
 
    // busca o cliente de destino
    clientDest = getClient(cli, usernameDest, NULL, 0);
-   if(clientDest) {
-      clientDest->clidest = clientOrig->username;
-      clientOrig->clidest = clientDest->username;
-      connected = TRUE;
+   if (clientDest) {
+      if (clientDest->clidest != NULL) {
+         sendMsgToClient(clientOrig, "This user is busy chatting with someone else.\n");
+      } else {
+         clientDest->clidest = clientOrig->username;
+         clientOrig->clidest = clientDest->username;
+         sprintf(returnMsg, "Chatting with %s", usernameDest);
+         sendMsgToClient(clientOrig, returnMsg);
+         sprintf(returnMsg, "Chatting with %s", clientOrig->username);
+         sendMsgToClient(clientDest, returnMsg);
+      }
    } else {
-      Sendto(clientOrig->sockfd, "Client Busy\n", 15, 0, (struct sockaddr *) &(clientOrig->cliaddr), clilen);
-   }
-
-   // envia uma mensagem de sucesso ou erro para o usuario
-   if(connected) {
-      sprintf(returnMsg, "Connected with %s", usernameDest);
-      Sendto(clientOrig->sockfd, returnMsg, 50, 0, (struct sockaddr *) &clientOrig->cliaddr, clilen);
-   } else {
-      Sendto(clientOrig->sockfd, "User Not Found\n", 15, 0, (struct sockaddr *) &clientOrig->cliaddr, clilen);
+      sendMsgToClient(clientOrig, "User Not Found\n");
    }
 }
 
-// envia uma mensagem para outro cliente
-void sendText(Clients *cli, char *ip, int port) {
-   NoClient *clientOrig, *clientDest;
-   socklen_t clilen = sizeof(cli->connected->cliaddr);
-   char init[MAXLINE], msg[MAXLINE];
-   char *usernameOrig = getUsernameOrig(cli, ip, port);
-   char *usernameDest = getUsernameDest(cli, usernameOrig);
 
-   // busca o cliente de origem
-   clientOrig = getClient(cli, usernameOrig, NULL, 0);
-
-   // monta um texto indicando que pode enviar a mensagem
-   sprintf(init, "%s: ", usernameOrig);
-   Sendto(clientOrig->sockfd, init, MAXLINE, 0, (struct sockaddr *) &clientOrig->cliaddr, clilen);
-
-   // recebe a mensagem do cliente de origem
-   Recvfrom(clientOrig->sockfd, msg, MAXLINE, 0, (struct sockaddr *) &clientOrig->cliaddr, &clilen);
-
-   // busca o cliente de destino da mensagem
-   clientDest = getClient(cli, usernameDest, NULL, 0);
-
-   // envia a mensagem para o cliente de destino
-   Sendto(clientDest->sockfd, init, MAXLINE, 0, (struct sockaddr *) &clientDest->cliaddr, clilen);
-   Sendto(clientDest->sockfd, msg, MAXLINE, 0, (struct sockaddr *) &clientDest->cliaddr, clilen);
+void chatMessage(NoClient *clientOrig, NoClient *destClient, char* msg) {
+   char sendMsg[MAXLINE];
+   strcpy(sendMsg, clientOrig->username);
+   size_t ln = strlen(sendMsg) - 1;
+   if (sendMsg[ln] == '\n') sendMsg[ln] = '\0';
+   strcat(sendMsg, ": ");
+   strcat(sendMsg, msg);
+   sendMsgToClient(destClient, sendMsg);
 }
 
 void routerMsg(char *msg, Clients *cli, int sockfd, struct sockaddr_in cliaddr, char *ip, int port) {
@@ -234,9 +190,11 @@ void routerMsg(char *msg, Clients *cli, int sockfd, struct sockaddr_in cliaddr, 
       firstConnect(cli, clientOrig, msg);
    } else if(strncmp(msg, "/list", 5) == 0) {
       listClientConnected(cli, clientOrig);
-   } else if(strncmp(msg, "user", 4) == 0) {
-      clientConnectclient(cli, ip, port, msg);
-      sendText(cli, ip, port);
+   } else if(strncmp(msg, "/chat", 4) == 0) {
+      clientConnectclient(cli, clientOrig, msg);
+   } else if(msg[0] !=  '/' && clientOrig->clidest != NULL) {
+      NoClient *destClient = getClient(cli, clientOrig->clidest, NULL, 0);
+      chatMessage(clientOrig, destClient, msg);
    } else {
       sendMsgToClient(clientOrig, "Command not found\n");
    }

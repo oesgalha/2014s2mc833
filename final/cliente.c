@@ -14,13 +14,25 @@ void help() {
    strcpy(msg, "================================================\n");
    strcat(msg, "\nUSAGE:\n");
    strcat(msg, "------------------------------------------------\n");
-   strcat(msg, "Connects to the server with an inputed username:\n");
-   strcat(msg, "/connect <USERNAME>\n");
+   strcat(msg, "Connects to the server with an inputed nickname:\n");
+   strcat(msg, "/connect <NICKNAME>\n");
    strcat(msg, "------------------------------------------------\n");
    strcat(msg, "List the users connected in the chat:\n");
    strcat(msg, "/list\n");
+   strcat(msg, "------------------------------------------------\n");
+   strcat(msg, "Start to chat with another user:\n");
+   strcat(msg, "/chat <NICKNAME>\n");
    strcat(msg, "================================================\n");
    fputs(msg, stdout);
+}
+
+// Trata o text devolvido pelo servidor
+void treatServerMsg(int sockfd, struct sockaddr_in servaddr, char *msg) {
+   if (strncmp(msg, "/ack", 4) == 0) {
+      Sendto(sockfd, "/ack", 4, 0, (struct sockaddr *) &servaddr,  sizeof(servaddr));
+   } else {
+      fputs(msg, stdout);
+   }
 }
 
 int main(int argc, char **argv) {
@@ -74,8 +86,8 @@ int main(int argc, char **argv) {
          // le os dados enviados pelo servidor
          n = Recvfrom(sockfd, server, MAXLINE, 0, NULL, NULL);
          server[n] = 0;
-         // Imprime o texto devolvida pelo servidor
-         fputs(server, stdout);
+         // Trata o texto devolvida pelo servidor
+         treatServerMsg(sockfd, servaddr, server);
       }
       // se atividade na entrada padrao
       if (FD_ISSET(STDIN_FILENO, &rset)) {
