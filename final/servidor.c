@@ -93,21 +93,20 @@ void sendMsgToClient(NoClient *client, char *msg) {
 }
 
 // envia uma string com a lista de clientes conectados no bate-papo
-void listClientConnected(Clients *cli) {
-   NoClient *client = cli->connected;
-   socklen_t clilen = sizeof(client->cliaddr);
+void listClientConnected(Clients *cli, NoClient *client) {
+   NoClient *auxClient = cli->connected;
    char buf[100], msg[MAXLINE];
    int cont = 1;
 
    strcpy(msg, "\nUSERS LIST\n");
-   while (client != NULL) {
+   while (auxClient != NULL) {
       sprintf(buf, "%d) ", cont);
       strcat(msg, buf);
-      strcat(msg, client->username);
-      client = client->next;
+      strcat(msg, auxClient->username);
+      auxClient = auxClient->next;
       cont++;
    }
-   Sendto(cli->connected->sockfd, msg, MAXLINE, 0, (const struct sockaddr *) &(cli->connected->cliaddr), clilen);
+   sendMsgToClient(client, msg);
 }
 
 // trata a primeira vez que o cliente se conecta com o bate-papo
@@ -219,12 +218,13 @@ void sendText(Clients *cli, char *ip, int port) {
 }
 
 void routerMsg(char *msg, Clients *cli, int sockfd, struct sockaddr_in cliaddr, char *ip, int port) {
+   NoClient *clientOrig = getClient(cli, NULL, ip, port);
    socklen_t clilen = sizeof(cliaddr);
 
    if(strncmp(msg, "connect", 7) == 0) {
       firstConnect(cli, sockfd, cliaddr, ip, port, msg);
    } else if(strncmp(msg, "list", 4) == 0) {
-      listClientConnected(cli);
+      listClientConnected(cli, clientOrig);
    } else if(strncmp(msg, "user", 4) == 0) {
       clientConnectclient(cli, ip, port, msg);
       sendText(cli, ip, port);
