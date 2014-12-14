@@ -14,7 +14,7 @@ void help() {
    strcpy(msg, "================================================\n");
    strcat(msg, "\nUSAGE:\n");
    strcat(msg, "------------------------------------------------\n");
-   strcat(msg, "Connects to the server with an inputed nickname:\n");
+   strcat(msg, "Connects to the chat room with a nickname:\n");
    strcat(msg, "/connect <NICKNAME>\n");
    strcat(msg, "------------------------------------------------\n");
    strcat(msg, "List the users connected in the chat:\n");
@@ -22,6 +22,9 @@ void help() {
    strcat(msg, "------------------------------------------------\n");
    strcat(msg, "Start to chat with another user:\n");
    strcat(msg, "/chat <NICKNAME>\n");
+   strcat(msg, "------------------------------------------------\n");
+   strcat(msg, "Disconnects from the chat room:\n");
+   strcat(msg, "/quit\n");
    strcat(msg, "================================================\n");
    fputs(msg, stdout);
 }
@@ -101,8 +104,5 @@ int main(int argc, char **argv) {
          }
       }
    }
-
-   // Chama a funcao DgCli para fazer o funcionamento de cliente
-   //dgCli(stdin, sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr));
    return 0;
 }

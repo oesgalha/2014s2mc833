@@ -5,7 +5,7 @@ typedef struct NoClient {
    char *ip;                     // ip do cliente origem
    int port;                     // porta do cliente origem
    char *username;               // username do cliente destino
-   char *clidest;                // ip do cliente destino
+   struct NoClient *clidest;     // cliente destino
    int sockfd;                   // sockfd do client origem
    int anonymous;                // boolean para identificar se e um usuario conectado ou nao
    struct sockaddr_in cliaddr;   // dados do socket do cliente origem
@@ -23,7 +23,6 @@ void clearMem(Clients *cli) {
    while (client != NULL) {
       aux = client;
       free(aux->ip);
-      free(aux->clidest);
       free(aux->username);
       free(aux);
       client = client->next;
@@ -67,27 +66,32 @@ void clientConnect(Clients *cli, NoClient *newClient, char *username) {
 }
 
 // desconecta cliente com o bate-papo
-void clientDesconnect(Clients *cli, char *ip, int port) {
-   NoClient *client = cli->connected;
+void clientDisconnect(Clients *cli, NoClient *client) {
+   NoClient *auxClient = cli->connected;
    NoClient *ant;
 
+   if (client->clidest != NULL) {
+      client->clidest->clidest = NULL;
+      client->clidest = NULL;
+   }
+
    // se for o primeiro da lista
-   if( (strcmp(client->ip, ip) == 0) && client->port == port) {
+   if( (strcmp(auxClient->ip, client->ip) == 0) && auxClient->port == client->port) {
       cli->connected = cli->connected->next;
       cli->n--;
-      free(client);
+      free(auxClient);
    } else {
-      ant = client;
-      client = client->next;
+      ant = auxClient;
+      auxClient = auxClient->next;
       while (client != NULL) {
-         if( (strcmp(client->ip, ip) == 0) && client->port == port) {
-            ant->next = client->next;
-            free(client);
-            client = ant->next;
+         if( (strcmp(auxClient->ip, client->ip) == 0) && auxClient->port == client->port) {
+            ant->next = auxClient->next;
+            free(auxClient);
+            auxClient = ant->next;
             break;
          }
-         ant = client;
-         client = client->next;
+         ant = auxClient;
+         auxClient = auxClient->next;
       }
    }
 }
@@ -157,8 +161,8 @@ void clientConnectclient(Clients *cli, NoClient *clientOrig, char *msg) {
       if (clientDest->clidest != NULL) {
          sendMsgToClient(clientOrig, "This user is busy chatting with someone else.\n");
       } else {
-         clientDest->clidest = clientOrig->username;
-         clientOrig->clidest = clientDest->username;
+         clientDest->clidest = clientOrig;
+         clientOrig->clidest = clientDest;
          sprintf(returnMsg, "Chatting with %s", usernameDest);
          sendMsgToClient(clientOrig, returnMsg);
          sprintf(returnMsg, "Chatting with %s", clientOrig->username);
@@ -170,14 +174,14 @@ void clientConnectclient(Clients *cli, NoClient *clientOrig, char *msg) {
 }
 
 
-void chatMessage(NoClient *clientOrig, NoClient *destClient, char* msg) {
+void chatMessage(NoClient *clientOrig, char* msg) {
    char sendMsg[MAXLINE];
    strcpy(sendMsg, clientOrig->username);
    size_t ln = strlen(sendMsg) - 1;
    if (sendMsg[ln] == '\n') sendMsg[ln] = '\0';
    strcat(sendMsg, ": ");
    strcat(sendMsg, msg);
-   sendMsgToClient(destClient, sendMsg);
+   sendMsgToClient(clientOrig->clidest, sendMsg);
 }
 
 void routerMsg(char *msg, Clients *cli, int sockfd, struct sockaddr_in cliaddr, char *ip, int port) {
@@ -191,10 +195,20 @@ void routerMsg(char *msg, Clients *cli, int sockfd, struct sockaddr_in cliaddr, 
    } else if(strncmp(msg, "/list", 5) == 0) {
       listClientConnected(cli, clientOrig);
    } else if(strncmp(msg, "/chat", 4) == 0) {
-      clientConnectclient(cli, clientOrig, msg);
+      if (clientOrig->anonymous) {
+         sendMsgToClient(clientOrig, "You must connect first to be able to chat\n");
+      } else {
+         clientConnectclient(cli, clientOrig, msg);
+      }
+   } else if(strncmp(msg, "/quit", 4) == 0) {
+      if (clientOrig->anonymous) {
+         sendMsgToClient(clientOrig, "You must connect first to be able to disconnect\n");
+      } else {
+         clientDisconnect(cli, clientOrig);
+         sendMsgToClient(clientOrig, "Disconnected\n");
+      }
    } else if(msg[0] !=  '/' && clientOrig->clidest != NULL) {
-      NoClient *destClient = getClient(cli, clientOrig->clidest, NULL, 0);
-      chatMessage(clientOrig, destClient, msg);
+      chatMessage(clientOrig, msg);
    } else {
       sendMsgToClient(clientOrig, "Command not found\n");
    }
