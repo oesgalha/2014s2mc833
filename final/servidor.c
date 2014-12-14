@@ -7,6 +7,7 @@ typedef struct NoClient {
    char *username;               // username do cliente destino
    char *clidest;                // ip do cliente destino
    int sockfd;                   // sockfd do client origem
+   int anonymous;                // boolean para identificar se e um usuario conectado ou nao
    struct sockaddr_in cliaddr;   // dados do socket do cliente origem
    struct NoClient *next;        // ponteiro para o proximo no da lista
 } NoClient;
@@ -45,15 +46,21 @@ Clients *initClients() {
    return cli;
 }
 
-// conecta cliente com o bate-papo
-void clientConnect(Clients *cli, int sockfd, struct sockaddr_in cliaddr, char *ip, int port, char *username) {
+NoClient *buildClient(int sockfd, struct sockaddr_in cliaddr, char *ip, int port) {
    NoClient *newClient = (NoClient*)malloc(sizeof(NoClient));
-   newClient->next = cli->connected;
    newClient->ip = ip;
    newClient->port = port;
-   newClient->username = username;
    newClient->cliaddr = cliaddr;
    newClient->sockfd = sockfd;
+   newClient->anonymous = TRUE;
+   return newClient;
+}
+
+// conecta cliente com o bate-papo
+void clientConnect(Clients *cli, NoClient *newClient, char *username) {
+   newClient->next = cli->connected;
+   newClient->username = username;
+   newClient->anonymous = FALSE;
    newClient->clidest = NULL;
    cli->connected = newClient;
    cli->n++;
@@ -110,12 +117,12 @@ void listClientConnected(Clients *cli, NoClient *client) {
 }
 
 // trata a primeira vez que o cliente se conecta com o bate-papo
-void firstConnect(Clients *cli, int sockfd, struct sockaddr_in cliaddr, char *ip, int port, char *msg) {
+void firstConnect(Clients *cli, NoClient *client, char *msg) {
    char *username = (char*)malloc(MAXLINE * sizeof(char));
    // Descobre o username do cliente
-   strncpy(username, &msg[8], MAXLINE-7);
+   strncpy(username, &msg[9], MAXLINE-8);
    // conecta o cliente no bate-papo
-   clientConnect(cli, sockfd, cliaddr, ip, port, username);
+   clientConnect(cli, client, username);
    // envia uma mensagem de sucesso para o cliente e solicita o username
    sendMsgToClient(cli->connected, "Connected!\n");
    //Sendto(sockfd, "Connected!\n", 40, 0, (struct sockaddr *) &cliaddr, clilen);
@@ -219,17 +226,23 @@ void sendText(Clients *cli, char *ip, int port) {
 
 void routerMsg(char *msg, Clients *cli, int sockfd, struct sockaddr_in cliaddr, char *ip, int port) {
    NoClient *clientOrig = getClient(cli, NULL, ip, port);
-   socklen_t clilen = sizeof(cliaddr);
+   if (clientOrig == NULL) {
+      clientOrig = buildClient(sockfd, cliaddr, ip, port);
+   }
 
-   if(strncmp(msg, "connect", 7) == 0) {
-      firstConnect(cli, sockfd, cliaddr, ip, port, msg);
-   } else if(strncmp(msg, "list", 4) == 0) {
+   if(strncmp(msg, "/connect", 8) == 0) {
+      firstConnect(cli, clientOrig, msg);
+   } else if(strncmp(msg, "/list", 5) == 0) {
       listClientConnected(cli, clientOrig);
    } else if(strncmp(msg, "user", 4) == 0) {
       clientConnectclient(cli, ip, port, msg);
       sendText(cli, ip, port);
    } else {
-      Sendto(sockfd, "Command not found\n", 20, 0, (struct sockaddr *) &cliaddr, clilen);
+      sendMsgToClient(clientOrig, "Command not found\n");
+   }
+
+   if (clientOrig->anonymous) {
+      free(clientOrig);
    }
 }
 

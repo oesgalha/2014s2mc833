@@ -7,6 +7,22 @@ void ClearStr(char* buffer) {
    }
 }
 
+
+// Mostra as instrucoes de uso do programa
+void help() {
+   char msg[MAXLINE];
+   strcpy(msg, "================================================\n");
+   strcat(msg, "\nUSAGE:\n");
+   strcat(msg, "------------------------------------------------\n");
+   strcat(msg, "Connects to the server with an inputed username:\n");
+   strcat(msg, "/connect <USERNAME>\n");
+   strcat(msg, "------------------------------------------------\n");
+   strcat(msg, "List the users connected in the chat:\n");
+   strcat(msg, "/list\n");
+   strcat(msg, "================================================\n");
+   fputs(msg, stdout);
+}
+
 int main(int argc, char **argv) {
    // Declaracao de variaveis
    int n, sockfd, reading_input = TRUE, reading_socket = TRUE;
@@ -36,6 +52,9 @@ int main(int argc, char **argv) {
 
    // Cria um socket
    sockfd = Socket(AF_INET, SOCK_DGRAM, 0);
+
+   // Mostrar instrucoes de uso:
+   help();
 
    while(reading_input || reading_socket) {
       // Resetar rset
