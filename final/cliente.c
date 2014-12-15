@@ -103,7 +103,7 @@ int sendFile(const char *filename) {
 // Trata o text devolvido pelo servidor
 void treatServerOutput(int sockfd, struct sockaddr_in servaddr, char *msg) {
    if (strncmp(msg, "/ack", 4) == 0) {
-      Sendto(sockfd, "/ack", 4, 0, (struct sockaddr *) &servaddr,  sizeof(servaddr));
+      sendto(sockfd, "/ack", 4, 0, (struct sockaddr *) &servaddr,  sizeof(servaddr));
    } else if(strncmp(msg, "/filereceive", 12) == 0) {
       char userIp[MAXLINE], fileName[MAXLINE];
       strncpy(userIp, &msg[13], MAXLINE-14);
@@ -129,6 +129,7 @@ int main(int argc, char **argv) {
    // Declaracao de variaveis
    int n, sockfd, reading_input = TRUE, reading_socket = TRUE;
    char buf[MAXLINE], server[MAXLINE+1];
+   char ip[12] = "10.12.68.3";
    struct sockaddr_in servaddr;
    struct timeval timeout;
    fd_set rset;
@@ -140,7 +141,7 @@ int main(int argc, char **argv) {
       strcat(buf, argv[0]);
       strcat(buf, " <IPaddress or Servername>");
       perror(buf);
-      exit(1);
+      exit(0);
    }
 
    // Limpa o que estiver no ponteiro do socket que representa o servidor
@@ -148,9 +149,16 @@ int main(int argc, char **argv) {
    bzero(&servaddr, sizeof(servaddr));
    servaddr.sin_family = AF_INET;
    servaddr.sin_port   = htons(PORT);
+   
+   // verifica se o cliente inseriu o IP ou servername correto
+   if((strncmp(argv[1], "10.12.68.3\0", 11) != 0) && 
+   	(strncmp(argv[1], "chatserver\0", 11) != 0)){
+   	 printf("\nERROR: IPaddress or Servername not exist!\n\n");
+   	return 0;
+   }
 
    // Converte o IP recebido na entrada para a forma binária da struct
-   InetPton(AF_INET, argv[1], servaddr);
+   InetPton(AF_INET, ip, servaddr);
 
    // Cria um socket
    sockfd = Socket(AF_INET, SOCK_DGRAM, 0);
@@ -174,7 +182,7 @@ int main(int argc, char **argv) {
       if (FD_ISSET(sockfd, &rset)) {
          ClearStr(server);
          // le os dados enviados pelo servidor
-         n = Recvfrom(sockfd, server, MAXLINE, 0, NULL, NULL);
+         n = recvfrom(sockfd, server, MAXLINE, 0, NULL, NULL);
          server[n] = 0;
          // Trata o texto devolvida pelo servidor
          treatServerOutput(sockfd, servaddr, server);
@@ -187,7 +195,7 @@ int main(int argc, char **argv) {
             reading_input = FALSE;
          } else {
             // envia os dados lidos ao servidor
-            Sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr *) &servaddr,  sizeof(servaddr));
+            sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr *) &servaddr,  sizeof(servaddr));
          }
       }
    }

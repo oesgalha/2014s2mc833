@@ -31,7 +31,5 @@ int Read(int sockfd, char* buffer);
 int Socket(int family, int type, int flags);
 void Write(int sockfd, char* buffer);
 void Select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset, struct timeval *timeout);
-ssize_t Recvfrom(int sockfd, void *msg, size_t n, int flags, struct sockaddr *from, socklen_t *addr);
-ssize_t Sendto(int sockfd, const void *msg, size_t n, int flags, const struct sockaddr *to, socklen_t addr);
 void dgEcho(int sockfd, struct sockaddr *pcliaddr, socklen_t clilen);
 void dgCli(FILE *fp, int sockfd, struct sockaddr *pservaddr, socklen_t servlen);

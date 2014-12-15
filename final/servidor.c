@@ -18,6 +18,9 @@ typedef struct Clients {
    NoClient *connected;          // vetor de clientes conectados
 } Clients;
 
+// estrutura de arquivo
+FILE *logFile;
+
 void clearMem(Clients *cli) {
    NoClient *aux, *client = cli->connected;
    while (client != NULL) {
@@ -65,15 +68,15 @@ void clientConnect(Clients *cli, NoClient *newClient, char *username) {
    cli->n++;
 }
 
-
-FILE *logFile;
-
 // Envia mensagem para um cliente
-void sendMsgToClient(NoClient *client, char *msg) {
+void sendMsgToClient(NoClient *client, char *strMsg) {
+	char msg[MAXLINE];
+	memcpy(msg, strMsg, strlen(strMsg));
    socklen_t clilen = sizeof(client->cliaddr);
    fprintf(stdout, "Sending msg to client - IP: %s - Port: %d - Msg: %s", client->ip, client->port, msg);
    fprintf(logFile, "Sending msg to client - IP: %s - Port: %d - Msg: %s", client->ip, client->port, msg);
-   Sendto(client->sockfd, msg, MAXLINE, 0, (const struct sockaddr *) &(client->cliaddr), clilen);
+   sendto(client->sockfd, msg, MAXLINE, 0, (const struct sockaddr *) &(client->cliaddr), clilen);
+   clearStr(msg);
 }
 
 // desconecta cliente com o bate-papo
@@ -128,6 +131,8 @@ void listClientConnected(Clients *cli, NoClient *client) {
       cont++;
    }
    sendMsgToClient(client, msg);
+   clearStr(buf);
+   clearStr(msg);
 }
 
 // trata a primeira vez que o cliente se conecta com o bate-papo
@@ -137,8 +142,10 @@ void firstConnect(Clients *cli, NoClient *client, char *msg) {
    strncpy(username, &msg[9], MAXLINE-8);
    // conecta o cliente no bate-papo
    clientConnect(cli, client, username);
-   // envia uma mensagem de sucesso para o cliente e solicita o username
-   sendMsgToClient(cli->connected, "Connected!\n");
+   // envia uma mensagem de sucesso para o cliente
+   sendMsgToClient(client, "Connected!\n");
+   // envia a lista de usuarios conectados
+   listClientConnected(cli, client);
 }
 
 // faz a busca e retorna um no de cliente
@@ -228,12 +235,12 @@ void routerMsg(char *msg, Clients *cli, int sockfd, struct sockaddr_in cliaddr, 
          sendMsgToClient(clientOrig, "You must connect first to be able to disconnect\n");
       } else {
          clientDisconnect(cli, clientOrig);
-         sendMsgToClient(clientOrig, "Disconnected\n");
+         sendMsgToClient(clientOrig, "Disconnected!\n");
       }
    } else if(msg[0] !=  '/' && clientOrig->clidest != NULL) {
       chatMessage(clientOrig, msg);
    } else {
-      sendMsgToClient(clientOrig, "Command not found\n");
+      sendMsgToClient(clientOrig, "Command not found!\n");
    }
 
    if (clientOrig->anonymous) {
@@ -271,7 +278,7 @@ int main (int argc, char **argv) {
    // Loop infinito
    for ( ; ; ) {
       // Recebe a mensagem enviada por um cliente
-      Recvfrom(sockfd, msg, MAXLINE, 0, (struct sockaddr *) &cliaddr, &clilen);
+      recvfrom(sockfd, msg, MAXLINE, 0, (struct sockaddr *) &cliaddr, &clilen);
 
       // transforma o IP para string e a porta para inteiro
       InetNtop(AF_INET, ip, cliaddr);
@@ -288,6 +295,9 @@ int main (int argc, char **argv) {
       bzero(&cliaddr, sizeof(cliaddr));
       clearStr(msg);
    }
+   // fecha o arquivo de log
+   fclose(logFile);
+   
    // libera a memoria
    clearMem(cli);
    return 0;
