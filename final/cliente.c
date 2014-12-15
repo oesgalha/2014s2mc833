@@ -22,6 +22,9 @@ void help() {
    strcat(msg, "Start to chat with another user:\n");
    strcat(msg, "/chat <NICKNAME>\n");
    strcat(msg, "------------------------------------------------\n");
+   strcat(msg, "Send a file to the other user:\n");
+   strcat(msg, "/file <FILENAME>\n");
+   strcat(msg, "------------------------------------------------\n");
    strcat(msg, "Disconnects from the chat room:\n");
    strcat(msg, "/quit\n");
    strcat(msg, "================================================\n");
