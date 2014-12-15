@@ -13,8 +13,8 @@
 
 #define LISTENQ 10
 #define MAXLINE 4096
-//#define PORT 2015
-#define PORT 2072
+#define PORT 2015
+#define FILEPORT 2016
 
 #define TRUE 1
 #define FALSE 0

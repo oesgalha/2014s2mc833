@@ -7,7 +7,6 @@ void ClearStr(char* buffer) {
    }
 }
 
-
 // Mostra as instrucoes de uso do programa
 void help() {
    char msg[MAXLINE];
@@ -29,10 +28,95 @@ void help() {
    fputs(msg, stdout);
 }
 
+int chattingIp;
+
+int receiveFile(const char *filename, char *ip) {
+   FILE *fp = fopen(filename, "wb");
+   if (NULL == fp) {
+      printf("Error trying to save the file");
+   } else {
+      int sockfd = Socket(AF_INET, SOCK_STREAM, 0);
+
+      struct sockaddr_in servaddr;
+      servaddr.sin_family = AF_INET;
+      servaddr.sin_port = htons(FILEPORT); // port
+      // Converte o IP para a forma binaria da struct
+      InetPton(AF_INET, ip, servaddr);
+
+      // Conectar
+      Connect(sockfd, servaddr);
+
+      // Receber o arquivo e salvar
+      int received = 0;
+      char buffer[MAXLINE];
+      bzero(&buffer, sizeof(buffer));
+      while((received = Read(sockfd, buffer)) > 0 ) {
+         fwrite(buffer, 1, received, fp);
+      }
+      printf("File received!\n");
+      fclose(fp);
+   }
+   return 0;
+}
+
+int sendFile(const char *filename) {
+   int listenfd = Socket(AF_INET, SOCK_STREAM, 0);
+
+   struct sockaddr_in servaddr, clientaddr;
+   bzero(&servaddr, sizeof(servaddr));
+   servaddr.sin_family = AF_INET;
+   servaddr.sin_port = htons(FILEPORT);
+   servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+   Bind(listenfd, servaddr);
+
+   Listen(listenfd, 10);
+
+   int connfd = Accept(listenfd, &clientaddr);
+
+   /* Open the file that we wish to transfer */
+   printf("Sending %s\n", filename);
+   FILE *fp = fopen(filename, "rb");
+   if (fp == NULL) {
+      printf("File not found!");
+   } else {
+      while(TRUE) {
+         int sendAmount;
+         char buffer[MAXLINE] = { 0 };
+         if ((sendAmount = fread(buffer, 1, MAXLINE, fp)) > 0) {
+            Write(connfd, buffer);
+         } else {
+            printf("File sent!\n");
+            break;
+         }
+      }
+      close(connfd);
+      fclose(fp);
+   }
+   return 0;
+}
+
+
 // Trata o text devolvido pelo servidor
-void treatServerMsg(int sockfd, struct sockaddr_in servaddr, char *msg) {
+void treatServerOutput(int sockfd, struct sockaddr_in servaddr, char *msg) {
    if (strncmp(msg, "/ack", 4) == 0) {
       Sendto(sockfd, "/ack", 4, 0, (struct sockaddr *) &servaddr,  sizeof(servaddr));
+   } else if(strncmp(msg, "/filereceive", 12) == 0) {
+      char userIp[MAXLINE], fileName[MAXLINE];
+      strncpy(userIp, &msg[13], MAXLINE-14);
+      size_t ln = strlen(userIp) - 1;
+      if (userIp[ln] == '\n') userIp[ln] = '\0';
+      fputs("You are receiving a file from the other user, please enter a name to save it:\n", stdout);
+      fgets(fileName, MAXLINE, stdin);
+      ln = strlen(fileName) - 1;
+      if (fileName[ln] == '\n') fileName[ln] = '\0';
+      receiveFile(fileName, userIp);
+   } else if(strncmp(msg, "/file", 5) == 0) {
+      char fileName[MAXLINE];
+      strncpy(fileName, &msg[6], MAXLINE-7);
+      size_t ln = strlen(fileName) - 1;
+      if (fileName[ln] == '\n') fileName[ln] = '\0';
+      sendFile(fileName);
    } else {
       fputs(msg, stdout);
    }
@@ -90,7 +174,7 @@ int main(int argc, char **argv) {
          n = Recvfrom(sockfd, server, MAXLINE, 0, NULL, NULL);
          server[n] = 0;
          // Trata o texto devolvida pelo servidor
-         treatServerMsg(sockfd, servaddr, server);
+         treatServerOutput(sockfd, servaddr, server);
       }
       // se atividade na entrada padrao
       if (FD_ISSET(STDIN_FILENO, &rset)) {

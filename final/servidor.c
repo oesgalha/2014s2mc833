@@ -65,10 +65,14 @@ void clientConnect(Clients *cli, NoClient *newClient, char *username) {
    cli->n++;
 }
 
+
+FILE *logFile;
+
 // Envia mensagem para um cliente
 void sendMsgToClient(NoClient *client, char *msg) {
    socklen_t clilen = sizeof(client->cliaddr);
-   printf("Sending msg to client - IP: %s - Port: %d - Msg: %s", client->ip, client->port, msg);
+   fprintf(stdout, "Sending msg to client - IP: %s - Port: %d - Msg: %s", client->ip, client->port, msg);
+   fprintf(logFile, "Sending msg to client - IP: %s - Port: %d - Msg: %s", client->ip, client->port, msg);
    Sendto(client->sockfd, msg, MAXLINE, 0, (const struct sockaddr *) &(client->cliaddr), clilen);
 }
 
@@ -200,13 +204,26 @@ void routerMsg(char *msg, Clients *cli, int sockfd, struct sockaddr_in cliaddr, 
       firstConnect(cli, clientOrig, msg);
    } else if(strncmp(msg, "/list", 5) == 0) {
       listClientConnected(cli, clientOrig);
-   } else if(strncmp(msg, "/chat", 4) == 0) {
+   } else if(strncmp(msg, "/chat", 5) == 0) {
       if (clientOrig->anonymous) {
          sendMsgToClient(clientOrig, "You must connect first to be able to chat\n");
       } else {
          clientConnectclient(cli, clientOrig, msg);
       }
-   } else if(strncmp(msg, "/quit", 4) == 0) {
+   } else if(strncmp(msg, "/file", 5) == 0) {
+      if (clientOrig->anonymous) {
+         sendMsgToClient(clientOrig, "You must connect first to be able to transfer a file\n");
+      } else if (clientOrig->clidest == NULL) {
+         sendMsgToClient(clientOrig, "You must chat with someone to transfer a file\n");
+      } else {
+         sendMsgToClient(clientOrig, msg);
+         char fileTransferMsg[MAXLINE];
+         strcpy(fileTransferMsg, "/filereceive ");
+         strcat(fileTransferMsg, clientOrig->ip);
+         strcat(fileTransferMsg, "\n");
+         sendMsgToClient(clientOrig->clidest, fileTransferMsg);
+      }
+   } else if(strncmp(msg, "/quit", 5) == 0) {
       if (clientOrig->anonymous) {
          sendMsgToClient(clientOrig, "You must connect first to be able to disconnect\n");
       } else {
@@ -230,6 +247,7 @@ int main (int argc, char **argv) {
    struct sockaddr_in servaddr;
    struct sockaddr_in cliaddr;
    char ip[MAXLINE], msg[MAXLINE];
+   logFile = fopen("chat_server.log", "w");
    socklen_t clilen = sizeof(cliaddr);
    Clients *cli;
 
@@ -260,7 +278,8 @@ int main (int argc, char **argv) {
       port = htons(cliaddr.sin_port);
 
       // Escrever IP, porta e string do cliente na saida padrao
-      printf("Incoming msg from client - IP: %s - Port: %d - Msg: %s", ip, port, msg);
+      fprintf(stdout, "Incoming msg from client - IP: %s - Port: %d - Msg: %s", ip, port, msg);
+      fprintf(logFile, "Incoming msg from client - IP: %s - Port: %d - Msg: %s", ip, port, msg);
 
       // faz o tratamento da mensagem
       routerMsg(msg, cli, sockfd, cliaddr, ip, port);
