@@ -48,6 +48,7 @@ Clients *initClients() {
    return cli;
 }
 
+// funcao que cria um no de cliente
 NoClient *buildClient(int sockfd, struct sockaddr_in cliaddr, char *ip, int port) {
    NoClient *newClient = (NoClient*)malloc(sizeof(NoClient));
    newClient->ip = ip;
@@ -68,7 +69,7 @@ void clientConnect(Clients *cli, NoClient *newClient, char *username) {
    cli->n++;
 }
 
-// Envia mensagem para um cliente
+// envia mensagem para um cliente
 void sendMsgToClient(NoClient *client, char *strMsg) {
 	char msg[MAXLINE];
 	memcpy(msg, strMsg, strlen(strMsg));
@@ -188,9 +189,10 @@ void clientConnectclient(Clients *cli, NoClient *clientOrig, char *msg) {
    } else {
       sendMsgToClient(clientOrig, "User Not Found\n");
    }
+   clearStr(returnMsg);
 }
 
-
+// envia mensagem no chat
 void chatMessage(NoClient *clientOrig, char* msg) {
    char sendMsg[MAXLINE];
    strcpy(sendMsg, clientOrig->username);
@@ -199,8 +201,10 @@ void chatMessage(NoClient *clientOrig, char* msg) {
    strcat(sendMsg, ": ");
    strcat(sendMsg, msg);
    sendMsgToClient(clientOrig->clidest, sendMsg);
+   clearStr(sendMsg);
 }
 
+// faz o tratamento das mensagens enviadas pelo cliente
 void routerMsg(char *msg, Clients *cli, int sockfd, struct sockaddr_in cliaddr, char *ip, int port) {
    NoClient *clientOrig = getClient(cli, NULL, ip, port);
    if (clientOrig == NULL) {
@@ -242,7 +246,8 @@ void routerMsg(char *msg, Clients *cli, int sockfd, struct sockaddr_in cliaddr, 
    } else {
       sendMsgToClient(clientOrig, "Command not found!\n");
    }
-
+	
+	// limpa a memoria
    if (clientOrig->anonymous) {
       free(clientOrig);
    }

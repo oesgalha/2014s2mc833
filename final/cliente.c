@@ -1,5 +1,8 @@
 #include "socket_utils.h"
 
+int chattingIp;
+
+// limpa o buffer
 void ClearStr(char* buffer) {
    int i;
    for(i = 0; i < MAXLINE; i++) {
@@ -31,8 +34,7 @@ void help() {
    fputs(msg, stdout);
 }
 
-int chattingIp;
-
+// funcao que recebe o arquivo
 int receiveFile(const char *filename, char *ip) {
    FILE *fp = fopen(filename, "wb");
    if (NULL == fp) {
@@ -62,6 +64,7 @@ int receiveFile(const char *filename, char *ip) {
    return 0;
 }
 
+// funcao que envia o arquivo
 int sendFile(const char *filename) {
    int listenfd = Socket(AF_INET, SOCK_STREAM, 0);
 
@@ -99,8 +102,7 @@ int sendFile(const char *filename) {
    return 0;
 }
 
-
-// Trata o text devolvido pelo servidor
+// Trata a mensagem devolvido pelo servidor
 void treatServerOutput(int sockfd, struct sockaddr_in servaddr, char *msg) {
    if (strncmp(msg, "/ack", 4) == 0) {
       sendto(sockfd, "/ack", 4, 0, (struct sockaddr *) &servaddr,  sizeof(servaddr));
