@@ -65,12 +65,25 @@ void clientConnect(Clients *cli, NoClient *newClient, char *username) {
    cli->n++;
 }
 
+// Envia mensagem para um cliente
+void sendMsgToClient(NoClient *client, char *msg) {
+   socklen_t clilen = sizeof(client->cliaddr);
+   printf("Sending msg to client - IP: %s - Port: %d - Msg: %s", client->ip, client->port, msg);
+   Sendto(client->sockfd, msg, MAXLINE, 0, (const struct sockaddr *) &(client->cliaddr), clilen);
+}
+
 // desconecta cliente com o bate-papo
 void clientDisconnect(Clients *cli, NoClient *client) {
    NoClient *auxClient = cli->connected;
    NoClient *ant;
 
    if (client->clidest != NULL) {
+      char dcWarn[MAXLINE];
+      strcpy(dcWarn, client->username);
+      size_t ln = strlen(dcWarn) - 1;
+      if (dcWarn[ln] == '\n') dcWarn[ln] = '\0';
+      strcat(dcWarn, " has disconnect the chat.\n");
+      sendMsgToClient(client->clidest, dcWarn);
       client->clidest->clidest = NULL;
       client->clidest = NULL;
    }
@@ -94,13 +107,6 @@ void clientDisconnect(Clients *cli, NoClient *client) {
          auxClient = auxClient->next;
       }
    }
-}
-
-// Envia mensagem para um cliente
-void sendMsgToClient(NoClient *client, char *msg) {
-   socklen_t clilen = sizeof(client->cliaddr);
-   printf("Sending msg to client - IP: %s - Port: %d - Msg: %s", client->ip, client->port, msg);
-   Sendto(client->sockfd, msg, MAXLINE, 0, (const struct sockaddr *) &(client->cliaddr), clilen);
 }
 
 // envia uma string com a lista de clientes conectados no bate-papo
