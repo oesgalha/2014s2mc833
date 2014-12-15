@@ -1,0 +1,18 @@
+Incoming msg from client - IP: 127.0.0.1 - Port: 62165 - Msg: /connect star
+Sending msg to client - IP: 127.0.0.1 - Port: 62165 - Msg: Connected!
+Sending msg to client - IP: 127.0.0.1 - Port: 62165 - Msg: 
+USERS LIST
+1) star
+Incoming msg from client - IP: 127.0.0.1 - Port: 55647 - Msg: /connect sun
+Sending msg to client - IP: 127.0.0.1 - Port: 55647 - Msg: Connected!
+Sending msg to client - IP: 127.0.0.1 - Port: 55647 - Msg: 
+USERS LIST
+1) sun
+2) star
+Incoming msg from client - IP: 127.0.0.1 - Port: 55647 - Msg: /chat star
+Sending msg to client - IP: 127.0.0.1 - Port: 55647 - Msg: Chatting with star
+Sending msg to client - IP: 127.0.0.1 - Port: 62165 - Msg: Chatting with sun
+Incoming msg from client - IP: 127.0.0.1 - Port: 62165 - Msg: sup sun?
+Sending msg to client - IP: 127.0.0.1 - Port: 55647 - Msg: star: sup sun?
+Incoming msg from client - IP: 127.0.0.1 - Port: 55647 - Msg: not much, star.
+Sending msg to client - IP: 127.0.0.1 - Port: 62165 - Msg: sun: not much, star.

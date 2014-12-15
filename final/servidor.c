@@ -21,6 +21,11 @@ typedef struct Clients {
 // estrutura de arquivo
 FILE *logFile;
 
+void sigHandler(int param) {
+   fclose(logFile);
+   exit(0);
+}
+
 void clearMem(Clients *cli) {
    NoClient *aux, *client = cli->connected;
    while (client != NULL) {
@@ -71,8 +76,8 @@ void clientConnect(Clients *cli, NoClient *newClient, char *username) {
 
 // envia mensagem para um cliente
 void sendMsgToClient(NoClient *client, char *strMsg) {
-	char msg[MAXLINE];
-	memcpy(msg, strMsg, strlen(strMsg));
+   char msg[MAXLINE];
+   strcpy(msg, strMsg);
    socklen_t clilen = sizeof(client->cliaddr);
    fprintf(stdout, "Sending msg to client - IP: %s - Port: %d - Msg: %s", client->ip, client->port, msg);
    fprintf(logFile, "Sending msg to client - IP: %s - Port: %d - Msg: %s", client->ip, client->port, msg);
@@ -132,8 +137,6 @@ void listClientConnected(Clients *cli, NoClient *client) {
       cont++;
    }
    sendMsgToClient(client, msg);
-   clearStr(buf);
-   clearStr(msg);
 }
 
 // trata a primeira vez que o cliente se conecta com o bate-papo
@@ -246,8 +249,8 @@ void routerMsg(char *msg, Clients *cli, int sockfd, struct sockaddr_in cliaddr, 
    } else {
       sendMsgToClient(clientOrig, "Command not found!\n");
    }
-	
-	// limpa a memoria
+
+   // limpa a memoria
    if (clientOrig->anonymous) {
       free(clientOrig);
    }
@@ -262,6 +265,9 @@ int main (int argc, char **argv) {
    logFile = fopen("chat_server.log", "w");
    socklen_t clilen = sizeof(cliaddr);
    Clients *cli;
+
+   void (*prev_handler)(int);
+   prev_handler = signal(SIGINT, sigHandler);
 
    // Tenta criar um socket local UDP IPv4
    sockfd = Socket(AF_INET, SOCK_DGRAM, 0);
@@ -302,7 +308,7 @@ int main (int argc, char **argv) {
    }
    // fecha o arquivo de log
    fclose(logFile);
-   
+
    // libera a memoria
    clearMem(cli);
    return 0;
