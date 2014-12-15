@@ -131,9 +131,10 @@ int main(int argc, char **argv) {
    // Declaracao de variaveis
    int n, sockfd, reading_input = TRUE, reading_socket = TRUE;
    char buf[MAXLINE], server[MAXLINE+1];
-   char ip[12] = "10.12.68.3";
    struct sockaddr_in servaddr;
    struct timeval timeout;
+   struct addrinfo hints, *res;
+   struct in_addr addr;
    fd_set rset;
 
    // Checa a presenca do parametro de IP
@@ -151,16 +152,20 @@ int main(int argc, char **argv) {
    bzero(&servaddr, sizeof(servaddr));
    servaddr.sin_family = AF_INET;
    servaddr.sin_port   = htons(PORT);
-   
-   // verifica se o cliente inseriu o IP ou servername correto
-   if((strncmp(argv[1], "10.12.68.3\0", 11) != 0) && 
-   	(strncmp(argv[1], "chatserver\0", 11) != 0)){
-   	 printf("\nERROR: IPaddress or Servername not exist!\n\n");
-   	return 0;
+
+   bzero(&hints, sizeof(hints));
+   hints.ai_socktype = SOCK_STREAM;
+   hints.ai_family = AF_INET;
+
+   if (getaddrinfo(argv[1], NULL, &hints, &res) != 0) {
+      printf("Error to resolve the servername\n");
+      return 1;
    }
 
+   addr.s_addr = ((struct sockaddr_in *)(res->ai_addr))->sin_addr.s_addr;
+
    // Converte o IP recebido na entrada para a forma binária da struct
-   InetPton(AF_INET, ip, servaddr);
+   // InetPton(AF_INET, argv[1], servaddr);
 
    // Cria um socket
    sockfd = Socket(AF_INET, SOCK_DGRAM, 0);
